@@ -1,49 +1,11 @@
-import { Formatter, Renderer, Stave, Voice } from 'vexflow';
+import { Formatter, Renderer, Stave } from 'vexflow';
 import type { Lesson } from '../../musicxml/normalizeLesson';
-import { DYNAMICS_LINE } from './constants';
-import { buildDynamicsVoice, isExplicitDynamic } from './dynamics';
 import { drawHairpins, collectHairpinSpans } from './hairpins';
+import { getLessonLastBeat } from './lessonMetrics';
 import { measureModifierWidth, rebalanceLines, splitMeasuresIntoLines } from './layout';
-import { buildMeasureNotes } from './notes';
-import type { DynamicEntry, NoteEntry, VexFlowContext } from './types';
-
-/**
- * Attach a rendering context to all tickables in the provided voices.
- * @param context - VexFlow rendering context.
- * @param voices - VexFlow voices to update.
- */
-function applyContextToVoices(context: VexFlowContext, voices: Voice[]) {
-  voices.forEach((voice) => {
-    voice.getTickables().forEach((tickable) => {
-      if (
-        typeof (tickable as { setContext?: (ctx: VexFlowContext) => void })
-          .setContext === 'function'
-      ) {
-        (tickable as { setContext: (ctx: VexFlowContext) => void }).setContext(
-          context,
-        );
-      }
-    });
-  });
-}
-
-/**
- * Determine the last absolute beat in the lesson timeline.
- * @param lesson - Lesson data.
- * @param beatsPerMeasure - Numerator of the time signature.
- * @returns Absolute beat at the lesson end.
- */
-function getLessonLastBeat(lesson: Lesson, beatsPerMeasure: number) {
-  const lastTimelineBeat =
-    lesson.timeline.length > 0
-      ? lesson.timeline[lesson.timeline.length - 1].absoluteBeat
-      : null;
-  if (typeof lastTimelineBeat === 'number') return lastTimelineBeat;
-
-  const lastMeasure = lesson.measures[lesson.measures.length - 1];
-  if (!lastMeasure) return 0;
-  return (lastMeasure.index + 1) * beatsPerMeasure;
-}
+import { prepareMeasures } from './measurePrep';
+import type { DynamicEntry, NoteEntry } from './types';
+import { applyContextToVoices } from './voiceContext';
 
 /**
  * Render a lesson to a container using VexFlow.
@@ -70,34 +32,7 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
     withoutHeader: measureModifierWidth(beats, beatUnit, false, false),
   };
 
-  const prepared = lesson.measures.map((measure) => {
-    const { tickables, noteEntries } = buildMeasureNotes(measure, beatUnit);
-    const voice = new Voice({ num_beats: beats, beat_value: beatUnit });
-    voice.addTickables(tickables);
-    const explicitDynamics = buildDynamicsVoice(
-      measure,
-      beats,
-      beatUnit,
-      DYNAMICS_LINE,
-      isExplicitDynamic,
-      (type) => type,
-    );
-    const dynamicsVoices = explicitDynamics ? [explicitDynamics.voice] : [];
-    applyContextToVoices(context, [voice, ...dynamicsVoices]);
-
-    const formatter = new Formatter();
-    const voices = [voice, ...dynamicsVoices];
-    formatter.joinVoices(voices);
-    const minNoteWidth = formatter.preCalculateMinTotalWidth(voices);
-
-    return {
-      voice,
-      dynamicsVoices,
-      minNoteWidth,
-      noteEntries,
-      explicitEntries: explicitDynamics?.entries ?? [],
-    };
-  });
+  const prepared = prepareMeasures(lesson);
 
   const lines = rebalanceLines(
     splitMeasuresIntoLines(prepared, usableWidth, modifierWidths, rightPadding),
@@ -148,6 +83,7 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
 
       const formatter = new Formatter();
       const voices = [item.voice, ...item.dynamicsVoices];
+      applyContextToVoices(context, voices);
       formatter.joinVoices(voices).formatToStave(voices, stave);
       voices.forEach((voice) => voice.draw(context, stave));
 

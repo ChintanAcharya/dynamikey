@@ -317,6 +317,27 @@ export function normalizeLesson(parsed: ParsedLesson, id: string): Lesson {
     timeline.push(...preliminaryNotes);
   }
 
+  if (measures.length > 0) {
+    const lastIndex = measures[measures.length - 1].index;
+    const restMeasureIndex = lastIndex + 1;
+    const restStartBeat = restMeasureIndex * beatsPerMeasure;
+    const restNote: NoteEvent = {
+      id: crypto.randomUUID(),
+      startBeat: 0,
+      durationBeats: beatsPerMeasure,
+      midiNote: null,
+      key: null,
+      velocityTarget: lastTarget,
+      absoluteBeat: restStartBeat,
+      measureIndex: restMeasureIndex,
+    };
+    measures.push({
+      index: restMeasureIndex,
+      beats: beatsPerMeasure,
+      notes: [restNote],
+    });
+  }
+
   applyDynamicsAcrossTimeline(measures, timeline, beatsPerMeasure, lastTarget);
 
   return {

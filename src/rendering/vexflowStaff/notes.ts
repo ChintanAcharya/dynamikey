@@ -1,4 +1,4 @@
-import { Accidental, GhostNote, StaveNote, Tickable } from 'vexflow';
+import { Accidental, StaveNote, Tickable } from 'vexflow';
 import type { Measure } from '../../musicxml/normalizeLesson';
 import type { NoteEntry } from './types';
 import { beatsToDurationValue, midiToKey } from './durations';
@@ -30,7 +30,11 @@ export function buildMeasureNotes(measure: Measure, beatUnit: number) {
     const duration = String(beatsToDurationValue(note.durationBeats, beatUnit));
 
     if (!key) {
-      tickables.push(new GhostNote(duration));
+      const restNote = new StaveNote({
+        keys: ['b/4'],
+        duration: `${duration}r`,
+      });
+      tickables.push(restNote);
       continue;
     }
 

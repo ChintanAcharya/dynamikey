@@ -67,12 +67,12 @@ function App() {
             MIDI Dynamics Trainer
           </span>
           <h1 className="mt-3 text-4xl font-semibold leading-tight text-black">
-            Milestone 1: MusicXML parsing validation
+            Milestone 4: Scrolling timeline + transport
           </h1>
           <p className="mt-2 max-w-3xl text-base text-black/60">
-            Lessons are discovered from <code>lessons/*.musicxml</code> and
-            parsed with OpenSheetMusicDisplay. Select a lesson to inspect the
-            extracted time signature, tempo, notes, and dynamics.
+            Parsed MusicXML is rendered into a scrolling VexFlow timeline,
+            synced to a transport clock with tempo and count-in. Use the
+            controls to play, pause, and reset the moving staff.
           </p>
         </header>
 
@@ -143,7 +143,10 @@ function App() {
                       VexFlow Preview
                     </div>
                     <div className="rounded-2xl border border-black/10 bg-white p-4">
-                      <VexFlowStaff lesson={normalizedLesson} />
+                      <VexFlowStaff
+                        key={normalizedLesson.id}
+                        lesson={normalizedLesson}
+                      />
                     </div>
                   </div>
                 )}
