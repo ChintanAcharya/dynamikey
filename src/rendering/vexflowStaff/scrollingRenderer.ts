@@ -31,6 +31,12 @@ const DEFAULT_SCROLLING_OPTIONS: ScrollingRendererOptions = {
   overscanBeats: 4,
 };
 
+const DEFAULT_NOTE_STYLE = {};
+const HIGHLIGHT_NOTE_STYLE = {
+  fillStyle: '#ef4444',
+  strokeStyle: '#ef4444',
+};
+
 type WindowState = {
   key: string;
   startBeat: number;
@@ -67,6 +73,9 @@ export function createScrollingLessonRenderer(
   const height = layout.topPadding + layout.lineHeight + layout.bottomPadding;
   const playheadX = computePlayheadX(viewportWidth, layout, config);
   let windowState: WindowState | null = null;
+  const allNoteEntries = prepared.flatMap((measure) => measure.noteEntries);
+  let highlightedNotes: NoteEntry[] = [];
+  let highlightKey = '';
   const gridStepBeats = layout.gridStepBeats;
 
   /**
@@ -77,6 +86,44 @@ export function createScrollingLessonRenderer(
   const beatKey = (beat: number) => Number(beat.toFixed(6));
 
   renderRoot.style.willChange = 'transform';
+
+  /**
+   * Find all notes that are active for the current beat.
+   * @param currentBeat - Current transport beat.
+   * @returns Active note entries.
+   */
+  function getActiveNotes(currentBeat: number) {
+    if (currentBeat < -EPSILON || currentBeat > layout.totalBeats + EPSILON) {
+      return [];
+    }
+    return allNoteEntries.filter((entry) => {
+      const start = entry.absoluteBeat;
+      const end = entry.absoluteBeat + entry.durationBeats;
+      return currentBeat + EPSILON >= start && currentBeat < end - EPSILON;
+    });
+  }
+
+  /**
+   * Apply highlight styles for the active notes.
+   * @param currentBeat - Current transport beat.
+   * @returns True when highlight state changes.
+   */
+  function updateHighlightedNotes(currentBeat: number) {
+    const activeNotes = getActiveNotes(currentBeat);
+    const nextKey = activeNotes.map((entry) => entry.id).join('|');
+    if (nextKey === highlightKey) return false;
+
+    highlightedNotes.forEach((entry) => {
+      entry.note.setStyle(DEFAULT_NOTE_STYLE);
+    });
+    activeNotes.forEach((entry) => {
+      entry.note.setStyle(HIGHLIGHT_NOTE_STYLE);
+    });
+
+    highlightedNotes = activeNotes;
+    highlightKey = nextKey;
+    return true;
+  }
 
   /**
    * Render a window of measures to the SVG root.
@@ -191,6 +238,7 @@ export function createScrollingLessonRenderer(
    */
   function update(currentBeat: number) {
     const clampedBeat = Math.max(0, Math.min(layout.totalBeats, currentBeat));
+    const highlightChanged = updateHighlightedNotes(currentBeat);
     const currentGridBeat =
       Math.floor((clampedBeat + EPSILON) / gridStepBeats) * gridStepBeats;
     const nextGridBeat = Math.min(
@@ -207,7 +255,7 @@ export function createScrollingLessonRenderer(
     const { windowMeasures, windowStartBeat, key } =
       selectWindow(clampedBeat);
     if (windowMeasures.length === 0) return;
-    if (!windowState || windowState.key !== key) {
+    if (!windowState || windowState.key !== key || highlightChanged) {
       const { beatAnchors, lastAnchorX } = renderWindow(windowMeasures);
       windowState = {
         key,

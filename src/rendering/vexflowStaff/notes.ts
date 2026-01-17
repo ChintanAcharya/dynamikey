@@ -44,7 +44,12 @@ export function buildMeasureNotes(measure: Measure, beatUnit: number) {
       staveNote.addModifier(new Accidental(accidental), 0);
     }
     tickables.push(staveNote);
-    noteEntries.push({ note: staveNote, absoluteBeat: note.absoluteBeat });
+    noteEntries.push({
+      id: note.id,
+      note: staveNote,
+      absoluteBeat: note.absoluteBeat,
+      durationBeats: note.durationBeats,
+    });
   }
 
   return { tickables, noteEntries };
