@@ -1,11 +1,12 @@
 import { Stave } from 'vexflow';
 
 /**
- * Measure the width consumed by clef/time signature modifiers.
+ * Measure the width consumed by clef/key/time signature modifiers.
  * @param beats - Numerator of the time signature.
  * @param beatUnit - Denominator of the time signature.
  * @param showClef - Whether to include the clef.
  * @param showTime - Whether to include the time signature.
+ * @param keySignature - Optional key signature string.
  * @returns Width in pixels for modifiers.
  */
 export function measureModifierWidth(
@@ -13,11 +14,15 @@ export function measureModifierWidth(
   beatUnit: number,
   showClef: boolean,
   showTime: boolean,
+  keySignature: string | null,
 ) {
   // Use a probe stave to determine how much horizontal space modifiers consume.
   const probeStave = new Stave(0, 0, 120);
   if (showClef) {
     probeStave.addClef('treble');
+  }
+  if (showClef && keySignature) {
+    probeStave.addKeySignature(keySignature);
   }
   if (showTime) {
     probeStave.addTimeSignature(`${beats}/${beatUnit}`);

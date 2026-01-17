@@ -65,6 +65,7 @@ export function createScrollingLessonRenderer(
 
   const prepared = prepareMeasures(lesson);
   const layout = buildScrollingLayout(lesson, prepared, config);
+  const keySignature = lesson.keySignature;
   const hairpinSpans = collectHairpinSpans(
     lesson.measures,
     layout.beatsPerMeasure,
@@ -152,9 +153,13 @@ export function createScrollingLessonRenderer(
     windowMeasures.forEach((item) => {
       const stave = new Stave(x, y, item.width);
       if (item.showHeader) {
-        stave
-          .addClef('treble')
-          .addTimeSignature(`${layout.beatsPerMeasure}/${layout.beatUnit}`);
+        stave.addClef('treble');
+        if (keySignature) {
+          stave.addKeySignature(keySignature);
+        }
+        stave.addTimeSignature(
+          `${layout.beatsPerMeasure}/${layout.beatUnit}`,
+        );
       }
       stave.setContext(context).draw();
 

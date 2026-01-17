@@ -20,6 +20,7 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
   const context = renderer.getContext();
 
   const [beats, beatUnit] = lesson.timeSignature;
+  const keySignature = lesson.keySignature;
   const padding = 24;
   const usableWidth = Math.max(width - padding * 2, 0);
   const rightPadding = 20;
@@ -28,8 +29,14 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
   const bottomPadding = 24;
 
   const modifierWidths = {
-    withHeader: measureModifierWidth(beats, beatUnit, true, true),
-    withoutHeader: measureModifierWidth(beats, beatUnit, false, false),
+    withHeader: measureModifierWidth(
+      beats,
+      beatUnit,
+      true,
+      true,
+      keySignature,
+    ),
+    withoutHeader: measureModifierWidth(beats, beatUnit, false, false, null),
   };
 
   const prepared = prepareMeasures(lesson);
@@ -77,7 +84,11 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
         modifierWidth + rightPadding + item.minNoteWidth + extraPerMeasure;
       const stave = new Stave(x, y, measureWidth);
       if (index === 0) {
-        stave.addClef('treble').addTimeSignature(`${beats}/${beatUnit}`);
+        stave.addClef('treble');
+        if (keySignature) {
+          stave.addKeySignature(keySignature);
+        }
+        stave.addTimeSignature(`${beats}/${beatUnit}`);
       }
       stave.setContext(context).draw();
 

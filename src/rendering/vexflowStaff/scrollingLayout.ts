@@ -51,9 +51,22 @@ export function buildScrollingLayout(
 ): ScrollingLayout {
   const [beatsPerMeasure, beatUnit] = lesson.timeSignature;
   const gridStepBeats = beatUnit / 16;
+  const keySignature = lesson.keySignature;
   const modifierWidths = {
-    withHeader: measureModifierWidth(beatsPerMeasure, beatUnit, true, true),
-    withoutHeader: measureModifierWidth(beatsPerMeasure, beatUnit, false, false),
+    withHeader: measureModifierWidth(
+      beatsPerMeasure,
+      beatUnit,
+      true,
+      true,
+      keySignature,
+    ),
+    withoutHeader: measureModifierWidth(
+      beatsPerMeasure,
+      beatUnit,
+      false,
+      false,
+      null,
+    ),
   };
 
   const pixelsPerBeat = config.pixelsPerBeat;

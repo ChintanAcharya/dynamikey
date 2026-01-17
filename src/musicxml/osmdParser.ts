@@ -29,6 +29,7 @@ export type ParsedLesson = {
   title: string;
   timeSignature: [number, number] | null;
   tempoBpm: number | null;
+  keySignature: string | null;
   measures: ParsedMeasure[];
   diagnostics: {
     totalMeasures: number;
@@ -85,6 +86,90 @@ const CONTINUOUS_DYNAMIC_LABELS: Record<number, string> = {
   0: 'cresc',
   1: 'dim',
 };
+
+type KeyMode = 'major' | 'minor';
+
+const MAJOR_KEY_SIGNATURES: Record<number, string> = {
+  '-7': 'Cb',
+  '-6': 'Gb',
+  '-5': 'Db',
+  '-4': 'Ab',
+  '-3': 'Eb',
+  '-2': 'Bb',
+  '-1': 'F',
+  0: 'C',
+  1: 'G',
+  2: 'D',
+  3: 'A',
+  4: 'E',
+  5: 'B',
+  6: 'F#',
+  7: 'C#',
+};
+
+const MINOR_KEY_SIGNATURES: Record<number, string> = {
+  '-7': 'Abm',
+  '-6': 'Ebm',
+  '-5': 'Bbm',
+  '-4': 'Fm',
+  '-3': 'Cm',
+  '-2': 'Gm',
+  '-1': 'Dm',
+  0: 'Am',
+  1: 'Em',
+  2: 'Bm',
+  3: 'F#m',
+  4: 'C#m',
+  5: 'G#m',
+  6: 'D#m',
+  7: 'A#m',
+};
+
+/**
+ * Normalize a MusicXML mode string to major/minor.
+ * @param mode - Raw mode string.
+ * @returns Normalized key mode.
+ */
+function normalizeKeyMode(mode: string | null): KeyMode {
+  if (!mode) return 'major';
+  const normalized = mode.trim().toLowerCase();
+  if (normalized === 'minor' || normalized === 'aeolian') {
+    return 'minor';
+  }
+  return 'major';
+}
+
+/**
+ * Convert fifths + mode into a VexFlow key signature string.
+ * @param fifths - Circle of fifths value from MusicXML.
+ * @param mode - Key mode.
+ * @returns VexFlow key signature string or null when unavailable.
+ */
+function mapFifthsToKeySignature(
+  fifths: number,
+  mode: KeyMode,
+): string | null {
+  const map = mode === 'minor' ? MINOR_KEY_SIGNATURES : MAJOR_KEY_SIGNATURES;
+  return map[fifths] ?? null;
+}
+
+/**
+ * Parse the key signature from MusicXML.
+ * @param xml - MusicXML document string.
+ * @returns VexFlow key signature string or null when missing.
+ */
+function parseXmlKeySignature(xml: string): string | null {
+  const parser = new DOMParser();
+  const document = parser.parseFromString(xml, 'application/xml');
+  const keyNode = document.querySelector('part > measure attributes > key');
+  if (!keyNode) return null;
+  const fifthsText = keyNode.querySelector('fifths')?.textContent;
+  if (!fifthsText) return null;
+  const fifths = Number(fifthsText);
+  if (Number.isNaN(fifths)) return null;
+  const modeText = keyNode.querySelector('mode')?.textContent ?? null;
+  return mapFifthsToKeySignature(fifths, normalizeKeyMode(modeText));
+}
 
 /**
  * Read the real-value from an OSMD Fraction.
@@ -514,6 +599,7 @@ export async function parseLessonFromXml(xml: string): Promise<ParsedLesson> {
   const sourceMeasures = sheet.SourceMeasures;
 
   const timeSignature = extractTimeSignature(sourceMeasures);
+  const keySignature = parseXmlKeySignature(xml);
   const xmlKeys = parseXmlNoteKeys(xml);
   const xmlDynamics = parseXmlDynamics(xml, timeSignature?.[1] ?? 4);
 
@@ -527,6 +613,7 @@ export async function parseLessonFromXml(xml: string): Promise<ParsedLesson> {
     title: sheet?.Title?.text ?? 'Untitled Lesson',
     timeSignature,
     tempoBpm: extractTempo(sourceMeasures),
+    keySignature,
     measures,
     diagnostics: {
       totalMeasures: sourceMeasures.length,

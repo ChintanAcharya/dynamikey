@@ -47,6 +47,7 @@ export type Lesson = {
   title: string;
   timeSignature: [number, number];
   defaultTempo: number;
+  keySignature: string | null;
   measures: Measure[];
   scoring: ScoringConfig;
   timeline: NoteEvent[];
@@ -263,6 +264,7 @@ export function normalizeLesson(parsed: ParsedLesson, id: string): Lesson {
   const beatsPerMeasure = timeSignature[0];
   const beatUnit = timeSignature[1];
   const defaultTempo = parsed.tempoBpm ?? 60;
+  const keySignature = parsed.keySignature ?? null;
   const measures: Measure[] = [];
   const timeline: NoteEvent[] = [];
   let lastTarget = average(DYNAMIC_TARGETS.mf);
@@ -345,6 +347,7 @@ export function normalizeLesson(parsed: ParsedLesson, id: string): Lesson {
     title: parsed.title,
     timeSignature,
     defaultTempo,
+    keySignature,
     measures,
     scoring: DEFAULT_SCORING,
     timeline: timeline.sort((a, b) => a.absoluteBeat - b.absoluteBeat),

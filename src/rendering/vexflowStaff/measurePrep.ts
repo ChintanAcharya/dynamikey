@@ -1,4 +1,4 @@
-import { Formatter, GhostNote, Voice } from 'vexflow';
+import { Accidental, Formatter, GhostNote, Voice } from 'vexflow';
 import type { Lesson } from '../../musicxml/normalizeLesson';
 import { DYNAMICS_LINE, EPSILON } from './constants';
 import { buildDynamicsVoice, isExplicitDynamic } from './dynamics';
@@ -25,11 +25,13 @@ export type PreparedMeasure = {
  */
 export function prepareMeasures(lesson: Lesson): PreparedMeasure[] {
   const [beats, beatUnit] = lesson.timeSignature;
+  const keySignature = lesson.keySignature ?? 'C';
 
   return lesson.measures.map((measure) => {
     const { tickables, noteEntries } = buildMeasureNotes(measure, beatUnit);
     const voice = new Voice({ num_beats: beats, beat_value: beatUnit });
     voice.addTickables(tickables);
+    Accidental.applyAccidentals([voice], keySignature);
 
     const explicitDynamics = buildDynamicsVoice(
       measure,
