@@ -31,11 +31,7 @@ const DEFAULT_SCROLLING_OPTIONS: ScrollingRendererOptions = {
   overscanBeats: 4,
 };
 
-const DEFAULT_NOTE_STYLE = {};
-const HIGHLIGHT_NOTE_STYLE = {
-  fillStyle: '#ef4444',
-  strokeStyle: '#ef4444',
-};
+const HIGHLIGHT_CLASS = 'vf-note-highlight';
 
 type WindowState = {
   key: string;
@@ -109,16 +105,22 @@ export function createScrollingLessonRenderer(
    * @param currentBeat - Current transport beat.
    * @returns True when highlight state changes.
    */
-  function updateHighlightedNotes(currentBeat: number) {
+  function updateHighlightedNotes(currentBeat: number, force = false) {
     const activeNotes = getActiveNotes(currentBeat);
     const nextKey = activeNotes.map((entry) => entry.id).join('|');
-    if (nextKey === highlightKey) return false;
+    if (!force && nextKey === highlightKey) return false;
 
     highlightedNotes.forEach((entry) => {
-      entry.note.setStyle(DEFAULT_NOTE_STYLE);
+      const svgElement = entry.note.getSVGElement();
+      if (svgElement) {
+        svgElement.classList.remove(HIGHLIGHT_CLASS);
+      }
     });
     activeNotes.forEach((entry) => {
-      entry.note.setStyle(HIGHLIGHT_NOTE_STYLE);
+      const svgElement = entry.note.getSVGElement();
+      if (svgElement) {
+        svgElement.classList.add(HIGHLIGHT_CLASS);
+      }
     });
 
     highlightedNotes = activeNotes;
@@ -243,7 +245,6 @@ export function createScrollingLessonRenderer(
    */
   function update(currentBeat: number) {
     const clampedBeat = Math.max(0, Math.min(layout.totalBeats, currentBeat));
-    const highlightChanged = updateHighlightedNotes(currentBeat);
     const currentGridBeat =
       Math.floor((clampedBeat + EPSILON) / gridStepBeats) * gridStepBeats;
     const nextGridBeat = Math.min(
@@ -260,7 +261,8 @@ export function createScrollingLessonRenderer(
     const { windowMeasures, windowStartBeat, key } =
       selectWindow(clampedBeat);
     if (windowMeasures.length === 0) return;
-    if (!windowState || windowState.key !== key || highlightChanged) {
+    let didRender = false;
+    if (!windowState || windowState.key !== key) {
       const { beatAnchors, lastAnchorX } = renderWindow(windowMeasures);
       windowState = {
         key,
@@ -268,7 +270,9 @@ export function createScrollingLessonRenderer(
         beatAnchors,
         lastAnchorX,
       };
+      didRender = true;
     }
+    updateHighlightedNotes(clampedBeat, didRender);
 
     const currentAnchor =
       windowState.beatAnchors.get(beatKey(currentGridBeat)) ??
