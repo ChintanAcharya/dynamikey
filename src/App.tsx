@@ -186,27 +186,9 @@ function App() {
                   </div>
                 </div>
 
-                <div className="mt-6 rounded-2xl border border-black/10 bg-black/5 p-4">
-                  <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-                    Parsed JSON Snapshot
-                  </div>
-                  <pre className="max-h-[320px] overflow-auto text-xs text-black/70">
-                    {JSON.stringify(parsedLesson, null, 2)}
-                  </pre>
-                </div>
               </>
             )}
 
-            {normalizedLesson && (
-              <div className="mt-6 rounded-2xl border border-black/10 bg-black/5 p-4">
-                <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-                  Normalized Lesson Model
-                </div>
-                <pre className="max-h-[320px] overflow-auto text-xs text-black/70">
-                  {JSON.stringify(normalizedLesson, null, 2)}
-                </pre>
-              </div>
-            )}
           </section>
         </div>
       </div>
