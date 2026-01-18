@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { lessons } from './musicxml/lessonCatalog';
 import { normalizeLesson, type Lesson } from './musicxml/normalizeLesson';
 import { parseLessonFromXml, type ParsedLesson } from './musicxml/osmdParser';
+import MockKeyboardInput from './input/MockKeyboardInput';
 import VexFlowStaff from './rendering/VexFlowStaff';
 
 /**
@@ -67,12 +68,12 @@ function App() {
             MIDI Dynamics Trainer
           </span>
           <h1 className="mt-3 text-4xl font-semibold leading-tight text-black">
-            Milestone 4: Scrolling timeline + transport
+            Milestone 5: Mock keyboard input
           </h1>
           <p className="mt-2 max-w-3xl text-base text-black/60">
-            Parsed MusicXML is rendered into a scrolling VexFlow timeline,
-            synced to a transport clock with tempo and count-in. Use the
-            controls to play, pause, and reset the moving staff.
+            Trigger note events with your computer keyboard, using the C4–C5
+            layout and adjustable velocity. Mock input is emitted in the same
+            format that future MIDI devices will use.
           </p>
         </header>
 
@@ -150,6 +151,13 @@ function App() {
                     </div>
                   </div>
                 )}
+
+                <div className="mt-6">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+                    Input Preview
+                  </div>
+                  <MockKeyboardInput />
+                </div>
 
                 <div className="mt-6 grid gap-4 md:grid-cols-3">
                   <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">
