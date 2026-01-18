@@ -222,7 +222,16 @@ function continuousDynamicToLabel(dynamic: {
  * @returns MIDI half-tone value or null when absent.
  */
 function extractMidi(note: Note): number | null {
-  return note.halfTone;
+  const pitch = note.Pitch;
+  if (!pitch) return null;
+  const fundamental = pitch.FundamentalNote;
+  const octave = pitch.Octave;
+  if (typeof fundamental !== 'number' || typeof octave !== 'number') {
+    return null;
+  }
+  const accidentalOffset =
+    pitch.Accidental === 0 ? 1 : pitch.Accidental === 1 ? -1 : 0;
+  return (octave + 1) * 12 + fundamental + accidentalOffset;
 }
 
 const NOTE_ENUM_TO_STEP: Record<number, string> = {
@@ -233,6 +242,15 @@ const NOTE_ENUM_TO_STEP: Record<number, string> = {
   7: 'G',
   9: 'A',
   11: 'B',
+};
+const STEP_TO_SEMITONE: Record<string, number> = {
+  C: 0,
+  D: 2,
+  E: 4,
+  F: 5,
+  G: 7,
+  A: 9,
+  B: 11,
 };
 
 /**
@@ -316,6 +334,39 @@ function parseXmlNoteKeys(xml: string) {
       keys.push(`${step.toLowerCase()}${symbol}/${octave}`);
     }
     return keys;
+  });
+}
+
+/**
+ * Parse MIDI note numbers directly from MusicXML.
+ * @param xml - MusicXML document string.
+ * @returns Per-measure arrays of MIDI values.
+ */
+function parseXmlNoteMidis(xml: string) {
+  const parser = new DOMParser();
+  const document = parser.parseFromString(xml, 'application/xml');
+  const measures = Array.from(document.querySelectorAll('part > measure'));
+  return measures.map((measure) => {
+    const midis: number[] = [];
+    const notes = Array.from(measure.querySelectorAll('note'));
+    for (const note of notes) {
+      if (note.querySelector('rest')) continue;
+      const step = note.querySelector('pitch > step')?.textContent;
+      const octaveRaw = note.querySelector('pitch > octave')?.textContent;
+      const alterRaw = note.querySelector('pitch > alter')?.textContent;
+      if (!step || !octaveRaw) continue;
+      const octave = Number(octaveRaw);
+      if (Number.isNaN(octave)) continue;
+      const alter = alterRaw ? Number(alterRaw) : 0;
+      const semitone = STEP_TO_SEMITONE[step.toUpperCase()];
+      if (semitone === undefined) continue;
+      const midi =
+        (octave + 1) * 12 +
+        semitone +
+        (Number.isNaN(alter) ? 0 : alter);
+      midis.push(midi);
+    }
+    return midis;
   });
 }
 
@@ -501,6 +552,7 @@ function extractDynamicsFromExpressions(
 function extractMeasures(
   sourceMeasures: SourceMeasure[],
   xmlKeys: string[][],
+  xmlMidis: number[][],
   xmlDynamics: ParsedDynamic[][],
 ) {
   const measures: ParsedMeasure[] = [];
@@ -527,9 +579,10 @@ function extractMeasures(
             for (const note of notes) {
               const fallbackKey = extractPitchKey(note);
               const xmlKey = xmlKeys[index]?.[noteEvents.length] ?? null;
+              const xmlMidi = xmlMidis[index]?.[noteEvents.length] ?? null;
               noteEvents.push({
                 id: `m${index + 1}-n${noteEvents.length + 1}`,
-                midi: extractMidi(note),
+                midi: xmlMidi ?? extractMidi(note),
                 key: xmlKey ?? fallbackKey,
                 startBeat,
                 durationBeats: extractDuration(note),
@@ -601,11 +654,13 @@ export async function parseLessonFromXml(xml: string): Promise<ParsedLesson> {
   const timeSignature = extractTimeSignature(sourceMeasures);
   const keySignature = parseXmlKeySignature(xml);
   const xmlKeys = parseXmlNoteKeys(xml);
+  const xmlMidis = parseXmlNoteMidis(xml);
   const xmlDynamics = parseXmlDynamics(xml, timeSignature?.[1] ?? 4);
 
   const { measures, totalNotes, totalDynamics } = extractMeasures(
     sourceMeasures,
     xmlKeys,
+    xmlMidis,
     xmlDynamics,
   );
 

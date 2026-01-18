@@ -18,8 +18,16 @@ export type ScrollingRendererOptions = ScrollingLayoutConfig & {
   overscanBeats: number;
 };
 
+export type NoteFeedbackStatus = 'hit' | 'miss' | 'warn';
+
+export type NoteFeedbackMap = Map<string, NoteFeedbackStatus>;
+
 export type ScrollingRenderer = {
-  update: (currentBeat: number) => void;
+  update: (
+    currentBeat: number,
+    noteStatuses?: NoteFeedbackMap | null,
+    feedbackRevision?: number,
+  ) => void;
   getPlayheadX: () => number;
   getHeight: () => number;
   destroy: () => void;
@@ -32,6 +40,12 @@ const DEFAULT_SCROLLING_OPTIONS: ScrollingRendererOptions = {
 };
 
 const HIGHLIGHT_CLASS = 'vf-note-highlight';
+const FEEDBACK_CLASSES: Record<NoteFeedbackStatus, string> = {
+  hit: 'vf-note-hit',
+  miss: 'vf-note-miss',
+  warn: 'vf-note-warn',
+};
+const FEEDBACK_CLASS_LIST = Object.values(FEEDBACK_CLASSES);
 
 type WindowState = {
   key: string;
@@ -73,6 +87,7 @@ export function createScrollingLessonRenderer(
   const allNoteEntries = prepared.flatMap((measure) => measure.noteEntries);
   let highlightedNotes: NoteEntry[] = [];
   let highlightKey = '';
+  let lastFeedbackRevision = -1;
   const gridStepBeats = layout.gridStepBeats;
 
   /**
@@ -126,6 +141,34 @@ export function createScrollingLessonRenderer(
     highlightedNotes = activeNotes;
     highlightKey = nextKey;
     return true;
+  }
+
+  /**
+   * Apply feedback styles to notes based on the latest status map.
+   * @param noteStatuses - Status map keyed by note id.
+   * @param revision - Revision number for change tracking.
+   * @param force - Whether to force reapplication.
+   */
+  function applyFeedbackStyles(
+    noteStatuses: NoteFeedbackMap,
+    revision: number,
+    force: boolean,
+  ) {
+    if (!force && revision === lastFeedbackRevision) return;
+
+    allNoteEntries.forEach((entry) => {
+      const svgElement = entry.note.getSVGElement();
+      if (!svgElement) return;
+      FEEDBACK_CLASS_LIST.forEach((className) => {
+        svgElement.classList.remove(className);
+      });
+      const status = noteStatuses.get(entry.id);
+      if (status) {
+        svgElement.classList.add(FEEDBACK_CLASSES[status]);
+      }
+    });
+
+    lastFeedbackRevision = revision;
   }
 
   /**
@@ -243,7 +286,11 @@ export function createScrollingLessonRenderer(
    * Update the renderer to match the current beat.
    * @param currentBeat - Current transport beat.
    */
-  function update(currentBeat: number) {
+  function update(
+    currentBeat: number,
+    noteStatuses?: NoteFeedbackMap | null,
+    feedbackRevision = 0,
+  ) {
     const clampedBeat = Math.max(0, Math.min(layout.totalBeats, currentBeat));
     const currentGridBeat =
       Math.floor((clampedBeat + EPSILON) / gridStepBeats) * gridStepBeats;
@@ -273,6 +320,9 @@ export function createScrollingLessonRenderer(
       didRender = true;
     }
     updateHighlightedNotes(clampedBeat, didRender);
+    if (noteStatuses) {
+      applyFeedbackStyles(noteStatuses, feedbackRevision, didRender);
+    }
 
     const currentAnchor =
       windowState.beatAnchors.get(beatKey(currentGridBeat)) ??

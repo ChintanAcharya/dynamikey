@@ -18,6 +18,21 @@ body {
 }
 
 .vf-note-highlight * {
-  fill: #ef4444 !important;
-  stroke: #ef4444 !important;
+  fill: #111111;
+  stroke: #111111;
+}
+
+.vf-note-hit * {
+  fill: #16a34a !important;
+  stroke: #16a34a !important;
+}
+
+.vf-note-warn * {
+  fill: #f59e0b !important;
+  stroke: #f59e0b !important;
+}
+
+.vf-note-miss * {
+  fill: #dc2626 !important;
+  stroke: #dc2626 !important;
 }

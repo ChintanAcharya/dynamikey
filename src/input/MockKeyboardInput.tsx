@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MidiNoteEvent } from './midiEvents';
+import { formatMidiNote } from './noteUtils';
 
 type MockKeyboardInputProps = {
   onEvent?: (event: MidiNoteEvent) => void;
@@ -11,21 +12,6 @@ type KeyMapping = {
   label: string;
   tone: 'white' | 'black';
 };
-
-const NOTE_NAMES = [
-  'C',
-  'C#',
-  'D',
-  'D#',
-  'E',
-  'F',
-  'F#',
-  'G',
-  'G#',
-  'A',
-  'A#',
-  'B',
-];
 
 const KEY_LAYOUT: KeyMapping[] = [
   { key: 'a', midiNote: 60, label: 'A', tone: 'white' },
@@ -61,12 +47,6 @@ const shouldIgnoreKeyEvent = (event: KeyboardEvent) => {
     target.tagName === 'SELECT' ||
     target.isContentEditable
   );
-};
-
-const formatMidiNote = (midiNote: number) => {
-  const name = NOTE_NAMES[midiNote % 12] ?? 'C';
-  const octave = Math.floor(midiNote / 12) - 1;
-  return `${name}${octave}`;
 };
 
 /**

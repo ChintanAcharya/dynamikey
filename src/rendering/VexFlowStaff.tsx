@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Lesson } from '../musicxml/normalizeLesson';
+import MockKeyboardInput from '../input/MockKeyboardInput';
+import type { MidiNoteEvent } from '../input/midiEvents';
+import { formatMidiNote } from '../input/noteUtils';
+import type { Lesson, NoteEvent } from '../musicxml/normalizeLesson';
 import {
   TransportClock,
   type TransportPhase,
@@ -8,12 +11,16 @@ import {
 import { getLessonLastBeat } from './vexflowStaff/lessonMetrics';
 import {
   createScrollingLessonRenderer,
+  type NoteFeedbackMap,
+  type NoteFeedbackStatus,
   type ScrollingRenderer,
 } from './vexflowStaff/scrollingRenderer';
 
 type VexFlowStaffProps = {
   lesson: Lesson;
 };
+
+const TIMING_WINDOW_RATIO = 0.5;
 
 /**
  * Render a VexFlow staff for the provided lesson.
@@ -31,6 +38,9 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const countInRef = useRef<number | null>(null);
   const lastBeatIndexRef = useRef<number | null>(null);
   const audioRef = useRef<AudioContext | null>(null);
+  const noteStatusesRef = useRef<NoteFeedbackMap>(new Map());
+  const feedbackRevisionRef = useRef(0);
+  const noteIndexRef = useRef(0);
   const [tempoBpm, setTempoBpm] = useState(() =>
     Math.round(lesson.defaultTempo),
   );
@@ -38,8 +48,35 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const [countInRemaining, setCountInRemaining] = useState<number | null>(null);
   const [staffHeight, setStaffHeight] = useState<number | null>(null);
   const [beatNumber, setBeatNumber] = useState<number | null>(null);
+  const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
+  const [feedbackIndicator, setFeedbackIndicator] = useState<
+    'ready' | 'hit' | 'warn' | 'miss'
+  >('ready');
+  const [feedbackDetail, setFeedbackDetail] = useState<string | null>(null);
 
   const beatsPerMeasure = lesson.timeSignature[0];
+  const playableNotes = useMemo(
+    () =>
+      lesson.timeline.filter(
+        (note): note is NoteEvent & { midiNote: number } =>
+          typeof note.midiNote === 'number',
+      ),
+    [lesson],
+  );
+  const currentNote = playableNotes[currentNoteIndex] ?? null;
+  const msPerBeat = useMemo(
+    () => (tempoBpm > 0 ? 60000 / tempoBpm : 1000),
+    [tempoBpm],
+  );
+  const timingWindowMs = useMemo(
+    () => msPerBeat * TIMING_WINDOW_RATIO,
+    [msPerBeat],
+  );
+  const timingWindowBeats = useMemo(
+    () => timingWindowMs / msPerBeat,
+    [timingWindowMs, msPerBeat],
+  );
+  const velocityTolerance = lesson.scoring.velocityTolerance;
   const totalBeats = useMemo(
     () => getLessonLastBeat(lesson, beatsPerMeasure),
     [lesson, beatsPerMeasure],
@@ -55,6 +92,29 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   );
 
   const isRunning = phase === 'playing' || phase === 'count-in';
+  const feedbackLabel =
+    feedbackIndicator === 'miss'
+      ? 'MISS'
+      : feedbackIndicator === 'ready'
+        ? 'READY'
+        : 'HIT';
+  const feedbackTone =
+    feedbackIndicator === 'miss'
+      ? 'border-red-500/30 bg-red-500/10 text-red-700'
+      : feedbackIndicator === 'warn'
+        ? 'border-amber-500/40 bg-amber-500/15 text-amber-700'
+        : feedbackIndicator === 'hit'
+          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
+          : 'border-black/10 bg-black/5 text-black/60';
+  const feedbackSummary =
+    feedbackIndicator === 'miss'
+      ? 'Too late'
+      : feedbackIndicator === 'warn'
+        ? 'Velocity off'
+        : feedbackIndicator === 'hit'
+          ? 'On time'
+          : 'Waiting for input';
+  const feedbackMessage = feedbackDetail ?? feedbackSummary;
 
   /**
    * Lazily initialize and resume the AudioContext for metronome clicks.
@@ -81,7 +141,10 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     oscillator.type = 'sine';
     oscillator.frequency.value = frequency;
     gainNode.gain.setValueAtTime(0.0001, context.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.25, context.currentTime + 0.01);
+    gainNode.gain.exponentialRampToValueAtTime(
+      0.25,
+      context.currentTime + 0.01,
+    );
     gainNode.gain.exponentialRampToValueAtTime(
       0.0001,
       context.currentTime + 0.08,
@@ -140,6 +203,110 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     [beatsPerMeasure, playClick],
   );
 
+  const syncRenderer = useCallback((currentBeat: number) => {
+    rendererRef.current?.update(
+      currentBeat,
+      noteStatusesRef.current,
+      feedbackRevisionRef.current,
+    );
+  }, []);
+
+  const bumpFeedbackRevision = useCallback(() => {
+    feedbackRevisionRef.current += 1;
+  }, []);
+
+  const resetFeedbackState = useCallback(
+    (currentBeat: number) => {
+      noteStatusesRef.current.clear();
+      bumpFeedbackRevision();
+      noteIndexRef.current = 0;
+      setCurrentNoteIndex(0);
+      setFeedbackIndicator('ready');
+      setFeedbackDetail(null);
+      syncRenderer(currentBeat);
+    },
+    [bumpFeedbackRevision, syncRenderer],
+  );
+
+  const markMissedNotes = useCallback(
+    (snapshot: TransportSnapshot) => {
+      if (snapshot.phase !== 'playing' && snapshot.phase !== 'ended') {
+        return;
+      }
+      let nextIndex = noteIndexRef.current;
+      let didUpdate = false;
+      while (nextIndex < playableNotes.length) {
+        const note = playableNotes[nextIndex];
+        const missDeadline = note.absoluteBeat + timingWindowBeats;
+        if (
+          snapshot.phase === 'playing' &&
+          snapshot.currentBeat <= missDeadline
+        ) {
+          break;
+        }
+        if (!noteStatusesRef.current.has(note.id)) {
+          noteStatusesRef.current.set(note.id, 'miss');
+          didUpdate = true;
+        }
+        nextIndex += 1;
+      }
+      if (nextIndex !== noteIndexRef.current) {
+        noteIndexRef.current = nextIndex;
+        setCurrentNoteIndex(nextIndex);
+      }
+      if (didUpdate) {
+        bumpFeedbackRevision();
+        setFeedbackIndicator('miss');
+        setFeedbackDetail('Too late');
+      }
+    },
+    [bumpFeedbackRevision, playableNotes, timingWindowBeats],
+  );
+
+  const handleInputEvent = useCallback(
+    (event: MidiNoteEvent) => {
+      if (event.type !== 'noteon') return;
+      const transport = transportRef.current;
+      if (!transport) return;
+      const snapshot = transport.update(event.timestamp);
+      if (snapshot.phase !== 'playing') return;
+      markMissedNotes(snapshot);
+
+      const note = playableNotes[noteIndexRef.current];
+      if (!note || typeof note.midiNote !== 'number') return;
+      if (event.midiNote !== note.midiNote) return;
+
+      const beatDelta = snapshot.currentBeat - note.absoluteBeat;
+      if (Math.abs(beatDelta) > timingWindowBeats) return;
+
+      const velocityDelta = Math.abs(event.velocity - note.velocityTarget);
+      const status: NoteFeedbackStatus =
+        velocityDelta <= velocityTolerance ? 'hit' : 'warn';
+      noteStatusesRef.current.set(note.id, status);
+      bumpFeedbackRevision();
+
+      setFeedbackIndicator(status === 'warn' ? 'warn' : 'hit');
+      setFeedbackDetail(
+        status === 'warn'
+          ? `Velocity off by ${Math.round(velocityDelta)}`
+          : null,
+      );
+
+      const nextIndex = noteIndexRef.current + 1;
+      noteIndexRef.current = nextIndex;
+      setCurrentNoteIndex(nextIndex);
+      syncRenderer(snapshot.currentBeat);
+    },
+    [
+      bumpFeedbackRevision,
+      markMissedNotes,
+      playableNotes,
+      syncRenderer,
+      timingWindowBeats,
+      velocityTolerance,
+    ],
+  );
+
   /**
    * Sync UI state to the latest transport snapshot.
    * @param nextPhase - Updated phase.
@@ -185,7 +352,11 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       }
       const transport = transportRef.current;
       const snapshot = transport ? transport.update(performance.now()) : null;
-      activeRenderer.update(snapshot?.currentBeat ?? 0);
+      activeRenderer.update(
+        snapshot?.currentBeat ?? 0,
+        noteStatusesRef.current,
+        feedbackRevisionRef.current,
+      );
     };
 
     rebuild();
@@ -231,14 +402,16 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       const snapshot = transport.update(now);
       const nextCountIn =
         snapshot.phase === 'count-in'
-          ? Math.max(
-              0,
-              Math.ceil(beatsPerMeasure - snapshot.beatsElapsed),
-            )
+          ? Math.max(0, Math.ceil(beatsPerMeasure - snapshot.beatsElapsed))
           : null;
       syncStatus(snapshot.phase, nextCountIn);
       updateBeatState(snapshot);
-      renderer.update(snapshot.currentBeat);
+      markMissedNotes(snapshot);
+      renderer.update(
+        snapshot.currentBeat,
+        noteStatusesRef.current,
+        feedbackRevisionRef.current,
+      );
 
       if (snapshot.phase === 'playing' || snapshot.phase === 'count-in') {
         animationFrameRef.current = requestAnimationFrame(step);
@@ -267,7 +440,11 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
           : null;
       syncStatus(snapshot.phase, nextCountIn);
       updateBeatState(snapshot);
-      rendererRef.current?.update(snapshot.currentBeat);
+      rendererRef.current?.update(
+        snapshot.currentBeat,
+        noteStatusesRef.current,
+        feedbackRevisionRef.current,
+      );
       return;
     }
 
@@ -280,7 +457,11 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         : null;
     syncStatus(snapshot.phase, nextCountIn);
     updateBeatState(snapshot);
-    rendererRef.current?.update(snapshot.currentBeat);
+    rendererRef.current?.update(
+      snapshot.currentBeat,
+      noteStatusesRef.current,
+      feedbackRevisionRef.current,
+    );
     startLoop();
   };
 
@@ -295,7 +476,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     syncStatus('idle', null);
     lastBeatIndexRef.current = null;
     setBeatNumber(null);
-    rendererRef.current?.update(0);
+    resetFeedbackState(0);
   };
 
   return (
@@ -332,7 +513,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
                 syncStatus('idle', null);
                 lastBeatIndexRef.current = null;
                 setBeatNumber(null);
-                rendererRef.current?.update(0);
+                resetFeedbackState(0);
                 setTempoBpm(value);
               }
             }}
@@ -355,6 +536,46 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
             Beat: {beatNumber}
           </span>
         )}
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.25fr]">
+        <div className="rounded-2xl border border-black/10 bg-white p-4">
+          <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em]">
+              Feedback
+            </div>
+            <div className="mt-2 text-4xl font-semibold">{feedbackLabel}</div>
+            <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em]">
+              {feedbackMessage}
+            </div>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+                Current note
+              </div>
+              <div className="mt-2 text-2xl font-semibold text-black">
+                {currentNote ? formatMidiNote(currentNote.midiNote) : '—'}
+              </div>
+              <div className="text-xs text-black/50">
+                Target velocity {currentNote ? currentNote.velocityTarget : '—'}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+                Windows
+              </div>
+              <div className="mt-2 text-sm text-black/70">
+                Timing ±{Math.round(timingWindowMs)} ms
+              </div>
+              <div className="text-sm text-black/70">
+                Velocity ±{velocityTolerance}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <MockKeyboardInput onEvent={handleInputEvent} />
       </div>
 
       <div
