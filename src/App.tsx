@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { lessons } from './musicxml/lessonCatalog';
 import { normalizeLesson, type Lesson } from './musicxml/normalizeLesson';
 import { parseLessonFromXml, type ParsedLesson } from './musicxml/osmdParser';
+import MockKeyboardInput from './input/MockKeyboardInput';
 import VexFlowStaff from './rendering/VexFlowStaff';
 
 /**
@@ -191,6 +192,13 @@ function App() {
 
           </section>
         </div>
+
+        <section className="rounded-3xl border border-black/10 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,15,15,0.08)]">
+          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+            Mock keyboard input
+          </div>
+          <MockKeyboardInput />
+        </section>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import MockKeyboardInput from '../input/MockKeyboardInput';
 import type { MidiNoteEvent } from '../input/midiEvents';
+import { subscribeMockInput } from '../input/mockInputBus';
 import { formatMidiNote } from '../input/noteUtils';
 import type { Lesson, NoteEvent } from '../musicxml/normalizeLesson';
 import {
@@ -20,7 +20,22 @@ type VexFlowStaffProps = {
   lesson: Lesson;
 };
 
-const TIMING_WINDOW_RATIO = 0.5;
+type TimingGrade =
+  | 'Too Early'
+  | 'Early'
+  | 'Good'
+  | 'Perfect'
+  | 'Late'
+  | 'Too Late';
+
+const TIMING_WINDOW_RATIO = 0.2;
+const TIMING_GRADE_THRESHOLDS = {
+  perfect: 0.15,
+  good: 0.4,
+  earlyLate: 0.65,
+  too: 0.9,
+};
+const FLASH_BEAT_EPSILON = 1e-3;
 
 /**
  * Render a VexFlow staff for the provided lesson.
@@ -41,6 +56,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const noteStatusesRef = useRef<NoteFeedbackMap>(new Map());
   const feedbackRevisionRef = useRef(0);
   const noteIndexRef = useRef(0);
+  const expectedFlashIndexRef = useRef(0);
   const [tempoBpm, setTempoBpm] = useState(() =>
     Math.round(lesson.defaultTempo),
   );
@@ -48,6 +64,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const [countInRemaining, setCountInRemaining] = useState<number | null>(null);
   const [staffHeight, setStaffHeight] = useState<number | null>(null);
   const [beatNumber, setBeatNumber] = useState<number | null>(null);
+  const [flashKey, setFlashKey] = useState(0);
   const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
   const [feedbackIndicator, setFeedbackIndicator] = useState<
     'ready' | 'hit' | 'warn' | 'miss'
@@ -77,6 +94,20 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     [timingWindowMs, msPerBeat],
   );
   const velocityTolerance = lesson.scoring.velocityTolerance;
+
+  const gradeTiming = useCallback(
+    (deltaBeats: number): TimingGrade => {
+      const ratio = timingWindowBeats > 0 ? deltaBeats / timingWindowBeats : 0;
+      if (ratio <= -TIMING_GRADE_THRESHOLDS.too) return 'Too Early';
+      if (ratio <= -TIMING_GRADE_THRESHOLDS.earlyLate) return 'Early';
+      if (ratio <= -TIMING_GRADE_THRESHOLDS.good) return 'Good';
+      if (Math.abs(ratio) <= TIMING_GRADE_THRESHOLDS.perfect) return 'Perfect';
+      if (ratio < TIMING_GRADE_THRESHOLDS.earlyLate) return 'Good';
+      if (ratio < TIMING_GRADE_THRESHOLDS.too) return 'Late';
+      return 'Too Late';
+    },
+    [timingWindowBeats],
+  );
   const totalBeats = useMemo(
     () => getLessonLastBeat(lesson, beatsPerMeasure),
     [lesson, beatsPerMeasure],
@@ -215,17 +246,42 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     feedbackRevisionRef.current += 1;
   }, []);
 
+  const triggerFlash = useCallback(() => {
+    setFlashKey((prev) => prev + 1);
+  }, []);
+
   const resetFeedbackState = useCallback(
     (currentBeat: number) => {
       noteStatusesRef.current.clear();
       bumpFeedbackRevision();
       noteIndexRef.current = 0;
+      expectedFlashIndexRef.current = 0;
       setCurrentNoteIndex(0);
       setFeedbackIndicator('ready');
       setFeedbackDetail(null);
+      setFlashKey(0);
       syncRenderer(currentBeat);
     },
     [bumpFeedbackRevision, syncRenderer],
+  );
+
+  const updateExpectedNoteFlash = useCallback(
+    (snapshot: TransportSnapshot) => {
+      if (snapshot.phase !== 'playing') return;
+      let index = expectedFlashIndexRef.current;
+      while (
+        index < playableNotes.length &&
+        snapshot.currentBeat + FLASH_BEAT_EPSILON >=
+          playableNotes[index].absoluteBeat
+      ) {
+        index += 1;
+      }
+      if (index !== expectedFlashIndexRef.current) {
+        expectedFlashIndexRef.current = index;
+        triggerFlash();
+      }
+    },
+    [playableNotes, triggerFlash],
   );
 
   const markMissedNotes = useCallback(
@@ -282,14 +338,15 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       const velocityDelta = Math.abs(event.velocity - note.velocityTarget);
       const status: NoteFeedbackStatus =
         velocityDelta <= velocityTolerance ? 'hit' : 'warn';
+      const timingGrade = gradeTiming(beatDelta);
       noteStatusesRef.current.set(note.id, status);
       bumpFeedbackRevision();
 
       setFeedbackIndicator(status === 'warn' ? 'warn' : 'hit');
       setFeedbackDetail(
         status === 'warn'
-          ? `Velocity off by ${Math.round(velocityDelta)}`
-          : null,
+          ? `${timingGrade} • Velocity off by ${Math.round(velocityDelta)}`
+          : timingGrade,
       );
 
       const nextIndex = noteIndexRef.current + 1;
@@ -299,6 +356,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     },
     [
       bumpFeedbackRevision,
+      gradeTiming,
       markMissedNotes,
       playableNotes,
       syncRenderer,
@@ -306,6 +364,12 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       velocityTolerance,
     ],
   );
+
+  useEffect(() => {
+    return subscribeMockInput((event) => {
+      handleInputEvent(event);
+    });
+  }, [handleInputEvent]);
 
   /**
    * Sync UI state to the latest transport snapshot.
@@ -406,6 +470,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
           : null;
       syncStatus(snapshot.phase, nextCountIn);
       updateBeatState(snapshot);
+      updateExpectedNoteFlash(snapshot);
       markMissedNotes(snapshot);
       renderer.update(
         snapshot.currentBeat,
@@ -538,44 +603,47 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         )}
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.25fr]">
-        <div className="rounded-2xl border border-black/10 bg-white p-4">
-          <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em]">
-              Feedback
+      <div className="rounded-2xl border border-black/10 bg-white p-4">
+        <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-xs font-semibold uppercase tracking-[0.2em]">
+                Feedback
+              </div>
+              <div
+                className={`flash-indicator ${
+                  flashKey % 2 === 0 ? '' : 'flash-indicator--on'
+                }`}
+              />
             </div>
-            <div className="mt-2 text-4xl font-semibold">{feedbackLabel}</div>
-            <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em]">
-              {feedbackMessage}
+          <div className="mt-2 text-4xl font-semibold">{feedbackLabel}</div>
+          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em]">
+            {feedbackMessage}
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+              Current note
+            </div>
+            <div className="mt-2 text-2xl font-semibold text-black">
+              {currentNote ? formatMidiNote(currentNote.midiNote) : '—'}
+            </div>
+            <div className="text-xs text-black/50">
+              Target velocity {currentNote ? currentNote.velocityTarget : '—'}
             </div>
           </div>
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-                Current note
-              </div>
-              <div className="mt-2 text-2xl font-semibold text-black">
-                {currentNote ? formatMidiNote(currentNote.midiNote) : '—'}
-              </div>
-              <div className="text-xs text-black/50">
-                Target velocity {currentNote ? currentNote.velocityTarget : '—'}
-              </div>
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+              Windows
             </div>
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-                Windows
-              </div>
-              <div className="mt-2 text-sm text-black/70">
-                Timing ±{Math.round(timingWindowMs)} ms
-              </div>
-              <div className="text-sm text-black/70">
-                Velocity ±{velocityTolerance}
-              </div>
+            <div className="mt-2 text-sm text-black/70">
+              Timing ±{Math.round(timingWindowMs)} ms
+            </div>
+            <div className="text-sm text-black/70">
+              Velocity ±{velocityTolerance}
             </div>
           </div>
         </div>
-
-        <MockKeyboardInput onEvent={handleInputEvent} />
       </div>
 
       <div
