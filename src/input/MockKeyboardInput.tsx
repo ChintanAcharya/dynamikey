@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MidiNoteEvent } from './midiEvents';
-import { emitMockInput } from './mockInputBus';
+import { emitInput } from './inputBus';
 import { formatMidiNote } from './noteUtils';
 
 type MockKeyboardInputProps = {
@@ -76,11 +76,11 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
 
   const emitEvent = useCallback(
     (event: MidiNoteEvent) => {
-      emitMockInput(event);
+      emitInput(event);
       onEvent?.(event);
       setRecentEvents((prev) => {
         const next = [event, ...prev];
-        return next.slice(0, 6);
+        return next.slice(0, 4);
       });
     },
     [onEvent],

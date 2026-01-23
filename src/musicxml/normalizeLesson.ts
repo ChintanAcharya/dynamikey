@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import type { ParsedDynamic, ParsedLesson, ParsedNote } from './osmdParser';
 
 export type ScoringConfig = {
@@ -132,7 +133,7 @@ function normalizeNotes(
     const durationBeats = toBeatValue(note.durationBeats) ?? 1;
     const absoluteBeat = measureIndex * beatsPerMeasure + startBeat;
     return {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       startBeat,
       durationBeats,
       midiNote: note.midi ?? null,
@@ -324,7 +325,7 @@ export function normalizeLesson(parsed: ParsedLesson, id: string): Lesson {
     const restMeasureIndex = lastIndex + 1;
     const restStartBeat = restMeasureIndex * beatsPerMeasure;
     const restNote: NoteEvent = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       startBeat: 0,
       durationBeats: beatsPerMeasure,
       midiNote: null,

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { subscribeInput } from '../input/inputBus';
 import type { MidiNoteEvent } from '../input/midiEvents';
-import { subscribeMockInput } from '../input/mockInputBus';
 import { formatMidiNote } from '../input/noteUtils';
 import type { Lesson, NoteEvent } from '../musicxml/normalizeLesson';
 import {
@@ -27,6 +27,11 @@ type TimingGrade =
   | 'Perfect'
   | 'Late'
   | 'Too Late';
+
+type FeedbackDetail = {
+  timing: string;
+  velocity: string;
+};
 
 const TIMING_WINDOW_RATIO = 0.2;
 const TIMING_GRADE_THRESHOLDS = {
@@ -69,7 +74,10 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const [feedbackIndicator, setFeedbackIndicator] = useState<
     'ready' | 'hit' | 'warn' | 'miss'
   >('ready');
-  const [feedbackDetail, setFeedbackDetail] = useState<string | null>(null);
+  const [feedbackDetail, setFeedbackDetail] = useState<FeedbackDetail>(() => ({
+    timing: 'Waiting',
+    velocity: 'Waiting',
+  }));
 
   const beatsPerMeasure = lesson.timeSignature[0];
   const playableNotes = useMemo(
@@ -137,15 +145,16 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         : feedbackIndicator === 'hit'
           ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
           : 'border-black/10 bg-black/5 text-black/60';
-  const feedbackSummary =
+  const feedbackPillTone =
     feedbackIndicator === 'miss'
-      ? 'Too late'
+      ? 'border border-red-500/40 bg-red-500/10 text-red-700'
       : feedbackIndicator === 'warn'
-        ? 'Velocity off'
+        ? 'border border-amber-500/50 bg-amber-500/15 text-amber-800'
         : feedbackIndicator === 'hit'
-          ? 'On time'
-          : 'Waiting for input';
-  const feedbackMessage = feedbackDetail ?? feedbackSummary;
+          ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-700'
+          : 'border border-black/10 bg-white/70 text-black/70';
+  const feedbackTiming = feedbackDetail.timing;
+  const feedbackVelocity = feedbackDetail.velocity;
 
   /**
    * Lazily initialize and resume the AudioContext for metronome clicks.
@@ -258,7 +267,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       expectedFlashIndexRef.current = 0;
       setCurrentNoteIndex(0);
       setFeedbackIndicator('ready');
-      setFeedbackDetail(null);
+      setFeedbackDetail({ timing: 'Waiting', velocity: 'Waiting' });
       setFlashKey(0);
       syncRenderer(currentBeat);
     },
@@ -313,7 +322,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       if (didUpdate) {
         bumpFeedbackRevision();
         setFeedbackIndicator('miss');
-        setFeedbackDetail('Too late');
+        setFeedbackDetail({ timing: 'Too late', velocity: 'No input' });
       }
     },
     [bumpFeedbackRevision, playableNotes, timingWindowBeats],
@@ -335,19 +344,25 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       const beatDelta = snapshot.currentBeat - note.absoluteBeat;
       if (Math.abs(beatDelta) > timingWindowBeats) return;
 
-      const velocityDelta = Math.abs(event.velocity - note.velocityTarget);
+      const velocityDelta = event.velocity - note.velocityTarget;
+      const velocityDeltaAbs = Math.abs(velocityDelta);
       const status: NoteFeedbackStatus =
-        velocityDelta <= velocityTolerance ? 'hit' : 'warn';
+        velocityDeltaAbs <= velocityTolerance ? 'hit' : 'warn';
       const timingGrade = gradeTiming(beatDelta);
+      const velocityMessage =
+        velocityDeltaAbs <= velocityTolerance
+          ? 'On target'
+          : `${velocityDelta > 0 ? 'Higher' : 'Lower'} by ${Math.round(
+              velocityDeltaAbs,
+            )}`;
       noteStatusesRef.current.set(note.id, status);
       bumpFeedbackRevision();
 
       setFeedbackIndicator(status === 'warn' ? 'warn' : 'hit');
-      setFeedbackDetail(
-        status === 'warn'
-          ? `${timingGrade} • Velocity off by ${Math.round(velocityDelta)}`
-          : timingGrade,
-      );
+      setFeedbackDetail({
+        timing: timingGrade.toLowerCase(),
+        velocity: velocityMessage,
+      });
 
       const nextIndex = noteIndexRef.current + 1;
       noteIndexRef.current = nextIndex;
@@ -366,7 +381,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   );
 
   useEffect(() => {
-    return subscribeMockInput((event) => {
+    return subscribeInput((event) => {
       handleInputEvent(event);
     });
   }, [handleInputEvent]);
@@ -514,6 +529,9 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     }
 
     await ensureAudioContext();
+    if (transport.getPhase() === 'ended') {
+      resetFeedbackState(0);
+    }
     transport.start(performance.now());
     const snapshot = transport.update(performance.now());
     const nextCountIn =
@@ -605,19 +623,42 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
 
       <div className="rounded-2xl border border-black/10 bg-white p-4">
         <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-xs font-semibold uppercase tracking-[0.2em]">
-                Feedback
-              </div>
-              <div
-                className={`flash-indicator ${
-                  flashKey % 2 === 0 ? '' : 'flash-indicator--on'
-                }`}
-              />
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs font-semibold uppercase tracking-[0.2em]">
+              Feedback
             </div>
+            <div
+              className={`flash-indicator ${
+                flashKey % 2 === 0 ? '' : 'flash-indicator--on'
+              }`}
+            />
+          </div>
           <div className="mt-2 text-4xl font-semibold">{feedbackLabel}</div>
-          <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em]">
-            {feedbackMessage}
+          <div className="mt-4 grid grid-cols-2 gap-6">
+            <div className="min-w-0">
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/50">
+                Velocity
+              </div>
+              <div className="mt-1 min-h-[2.5rem] flex items-center">
+                <span
+                  className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-semibold truncate ${feedbackPillTone}`}
+                >
+                  {feedbackVelocity}
+                </span>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/50">
+                Timing
+              </div>
+              <div className="mt-1 min-h-[2.5rem] flex items-center">
+                <span
+                  className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-semibold truncate ${feedbackPillTone}`}
+                >
+                  {feedbackTiming}
+                </span>
+              </div>
+            </div>
           </div>
         </div>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">

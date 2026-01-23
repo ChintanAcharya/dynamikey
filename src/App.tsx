@@ -3,6 +3,7 @@ import { lessons } from './musicxml/lessonCatalog';
 import { normalizeLesson, type Lesson } from './musicxml/normalizeLesson';
 import { parseLessonFromXml, type ParsedLesson } from './musicxml/osmdParser';
 import MockKeyboardInput from './input/MockKeyboardInput';
+import WebMidiInput from './input/WebMidiInput';
 import VexFlowStaff from './rendering/VexFlowStaff';
 
 /**
@@ -68,12 +69,11 @@ function App() {
             MIDI Dynamics Trainer
           </span>
           <h1 className="mt-3 text-4xl font-semibold leading-tight text-black">
-            Milestone 5: Real-time feedback
+            Milestone 6: Web MIDI input
           </h1>
           <p className="mt-2 max-w-3xl text-base text-black/60">
-            Trigger note events with your computer keyboard and see immediate
-            HIT/MISS feedback. Timing and velocity thresholds control whether
-            notes are marked green, yellow, or red.
+            Connect a hardware controller via Web MIDI or keep using the mock
+            keyboard. Input events feed the real-time feedback engine.
           </p>
         </header>
 
@@ -194,10 +194,13 @@ function App() {
         </div>
 
         <section className="rounded-3xl border border-black/10 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,15,15,0.08)]">
-          <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-            Mock keyboard input
+          <div className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
+            Inputs
           </div>
-          <MockKeyboardInput />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <WebMidiInput />
+            <MockKeyboardInput />
+          </div>
         </section>
       </div>
     </div>

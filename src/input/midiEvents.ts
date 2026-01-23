@@ -1,6 +1,6 @@
 export type MidiNoteEventType = 'noteon' | 'noteoff';
 
-export type MidiInputSource = 'mock';
+export type MidiInputSource = 'mock' | 'webmidi';
 
 export type MidiNoteEvent = {
   type: MidiNoteEventType;
