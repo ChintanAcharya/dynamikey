@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { use, useMemo, useState } from 'react';
 import { lessons } from './musicxml/lessonCatalog';
-import { normalizeLesson, type Lesson } from './musicxml/normalizeLesson';
-import { parseLessonFromXml, type ParsedLesson } from './musicxml/osmdParser';
+import { normalizeLesson } from './musicxml/normalizeLesson';
+import { parseLessonFromXml } from './musicxml/osmdParser';
 import MockKeyboardInput from './input/MockKeyboardInput';
 import WebMidiInput from './input/WebMidiInput';
 import VexFlowStaff from './rendering/VexFlowStaff';
@@ -14,48 +14,20 @@ function App() {
   const [selectedLessonId, setSelectedLessonId] = useState(
     lessons[0]?.id ?? '',
   );
-  const [status, setStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>(
-    'idle',
-  );
-  const [error, setError] = useState<string | null>(null);
-  const [parsedLesson, setParsedLesson] = useState<ParsedLesson | null>(null);
 
   const selectedLesson = useMemo(
     () => lessons.find((lesson) => lesson.id === selectedLessonId) ?? null,
     [selectedLessonId],
   );
 
-  useEffect(() => {
-    /* eslint-disable react-hooks/set-state-in-effect */
+  const parseLessonPromise = useMemo(() => {
     if (!selectedLesson) {
-      setParsedLesson(null);
-      return;
+      return Promise.resolve(null);
     }
-
-    let isActive = true;
-    setStatus('loading');
-    setError(null);
-
-    parseLessonFromXml(selectedLesson.xml)
-      .then((result) => {
-        if (!isActive) return;
-        setParsedLesson(result);
-        setStatus('ready');
-        console.log('Parsed lesson output', result);
-      })
-      .catch((err) => {
-        if (!isActive) return;
-        setError(
-          err instanceof Error ? err.message : 'Failed to parse lesson.',
-        );
-        setStatus('error');
-      });
-
-    return () => {
-      isActive = false;
-    };
-    /* eslint-enable react-hooks/set-state-in-effect */
+    return parseLessonFromXml(selectedLesson.xml);
   }, [selectedLesson]);
+
+  const parsedLesson = use(parseLessonPromise);
 
   const normalizedLesson = useMemo(() => {
     if (!parsedLesson || !selectedLesson) {
@@ -126,19 +98,9 @@ function App() {
                 </h2>
                 <p className="text-sm text-black/60">
                   {selectedLesson?.title ?? 'Select a lesson'}{' '}
-                  {status === 'loading' && '• Parsing...'}
                 </p>
               </div>
-              <span className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
-                {status}
-              </span>
             </div>
-
-            {error && (
-              <div className="mt-4 rounded-2xl border border-red-500/30 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
-            )}
 
             {parsedLesson && (
               <>
