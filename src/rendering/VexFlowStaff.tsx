@@ -343,7 +343,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       if (didUpdate) {
         bumpFeedbackRevision();
         setFeedbackIndicator('miss');
-        setFeedbackDetail({ timing: 'Too late', velocity: 'No input' });
+        setFeedbackDetail({ timing: 'Missed', velocity: 'No input' });
       }
       syncNextPendingNote();
     },
