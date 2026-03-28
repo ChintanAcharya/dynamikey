@@ -55,7 +55,7 @@ export type Lesson = {
 };
 
 const DEFAULT_SCORING: ScoringConfig = {
-  timingToleranceMs: 120,
+  timingToleranceMs: 200,
   velocityTolerance: 12,
   pitchStrict: true,
   weights: { timing: 0.4, pitch: 0.3, velocity: 0.3 },

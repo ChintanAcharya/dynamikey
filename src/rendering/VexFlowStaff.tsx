@@ -33,7 +33,6 @@ type FeedbackDetail = {
   velocity: string;
 };
 
-const TIMING_WINDOW_RATIO = 0.2;
 const TIMING_GRADE_THRESHOLDS = {
   perfect: 0.15,
   good: 0.4,
@@ -41,6 +40,8 @@ const TIMING_GRADE_THRESHOLDS = {
   too: 0.9,
 };
 const FLASH_BEAT_EPSILON = 1e-3;
+const MIN_TIMING_WINDOW_MS = 1;
+const MISS_GRACE_MS = 30;
 
 /**
  * Render a VexFlow staff for the provided lesson.
@@ -94,12 +95,16 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     [tempoBpm],
   );
   const timingWindowMs = useMemo(
-    () => msPerBeat * TIMING_WINDOW_RATIO,
-    [msPerBeat],
+    () => Math.max(lesson.scoring.timingToleranceMs, MIN_TIMING_WINDOW_MS),
+    [lesson.scoring.timingToleranceMs],
   );
   const timingWindowBeats = useMemo(
     () => timingWindowMs / msPerBeat,
     [timingWindowMs, msPerBeat],
+  );
+  const missGraceBeats = useMemo(
+    () => MISS_GRACE_MS / msPerBeat,
+    [msPerBeat],
   );
   const velocityTolerance = lesson.scoring.velocityTolerance;
 
@@ -293,6 +298,21 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     [playableNotes, triggerFlash],
   );
 
+  const syncNextPendingNote = useCallback(() => {
+    let nextIndex = noteIndexRef.current;
+    while (nextIndex < playableNotes.length) {
+      const status = noteStatusesRef.current.get(playableNotes[nextIndex].id);
+      if (!status) {
+        break;
+      }
+      nextIndex += 1;
+    }
+    if (nextIndex !== noteIndexRef.current) {
+      noteIndexRef.current = nextIndex;
+      setCurrentNoteIndex(nextIndex);
+    }
+  }, [playableNotes]);
+
   const markMissedNotes = useCallback(
     (snapshot: TransportSnapshot) => {
       if (snapshot.phase !== 'playing' && snapshot.phase !== 'ended') {
@@ -302,7 +322,8 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       let didUpdate = false;
       while (nextIndex < playableNotes.length) {
         const note = playableNotes[nextIndex];
-        const missDeadline = note.absoluteBeat + timingWindowBeats;
+        const missDeadline =
+          note.absoluteBeat + timingWindowBeats + missGraceBeats;
         if (
           snapshot.phase === 'playing' &&
           snapshot.currentBeat <= missDeadline
@@ -324,8 +345,51 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         setFeedbackIndicator('miss');
         setFeedbackDetail({ timing: 'Too late', velocity: 'No input' });
       }
+      syncNextPendingNote();
     },
-    [bumpFeedbackRevision, playableNotes, timingWindowBeats],
+    [
+      bumpFeedbackRevision,
+      missGraceBeats,
+      playableNotes,
+      syncNextPendingNote,
+      timingWindowBeats,
+    ],
+  );
+
+  const findMatchingNoteIndex = useCallback(
+    (midiNote: number, currentBeat: number) => {
+      let matchIndex = -1;
+      let smallestDelta = Number.POSITIVE_INFINITY;
+
+      for (let index = 0; index < playableNotes.length; index += 1) {
+        const note = playableNotes[index];
+        if (note.midiNote !== midiNote) {
+          continue;
+        }
+
+        const status = noteStatusesRef.current.get(note.id);
+        if (status && status !== 'miss') {
+          continue;
+        }
+
+        const beatDelta = currentBeat - note.absoluteBeat;
+        const beatDistance = Math.abs(beatDelta);
+        if (beatDistance > timingWindowBeats) {
+          if (note.absoluteBeat - currentBeat > timingWindowBeats) {
+            break;
+          }
+          continue;
+        }
+
+        if (beatDistance < smallestDelta) {
+          smallestDelta = beatDistance;
+          matchIndex = index;
+        }
+      }
+
+      return matchIndex;
+    },
+    [playableNotes, timingWindowBeats],
   );
 
   const handleInputEvent = useCallback(
@@ -337,13 +401,16 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       if (snapshot.phase !== 'playing') return;
       markMissedNotes(snapshot);
 
-      const note = playableNotes[noteIndexRef.current];
-      if (!note || typeof note.midiNote !== 'number') return;
-      if (event.midiNote !== note.midiNote) return;
+      const matchingNoteIndex = findMatchingNoteIndex(
+        event.midiNote,
+        snapshot.currentBeat,
+      );
+      if (matchingNoteIndex < 0) return;
+
+      const note = playableNotes[matchingNoteIndex];
+      if (!note) return;
 
       const beatDelta = snapshot.currentBeat - note.absoluteBeat;
-      if (Math.abs(beatDelta) > timingWindowBeats) return;
-
       const velocityDelta = event.velocity - note.velocityTarget;
       const velocityDeltaAbs = Math.abs(velocityDelta);
       const status: NoteFeedbackStatus =
@@ -364,18 +431,17 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         velocity: velocityMessage,
       });
 
-      const nextIndex = noteIndexRef.current + 1;
-      noteIndexRef.current = nextIndex;
-      setCurrentNoteIndex(nextIndex);
+      syncNextPendingNote();
       syncRenderer(snapshot.currentBeat);
     },
     [
       bumpFeedbackRevision,
+      findMatchingNoteIndex,
       gradeTiming,
       markMissedNotes,
       playableNotes,
+      syncNextPendingNote,
       syncRenderer,
-      timingWindowBeats,
       velocityTolerance,
     ],
   );

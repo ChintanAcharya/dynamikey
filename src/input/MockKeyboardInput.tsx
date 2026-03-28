@@ -38,6 +38,13 @@ const KEY_TO_MIDI = KEY_LAYOUT.reduce<Record<string, number>>((acc, entry) => {
 const MIN_VELOCITY = 1;
 const MAX_VELOCITY = 127;
 
+const getEventTimestamp = (event: Event) => {
+  if (Number.isFinite(event.timeStamp) && event.timeStamp > 0) {
+    return event.timeStamp;
+  }
+  return performance.now();
+};
+
 const shouldIgnoreKeyEvent = (event: KeyboardEvent) => {
   if (event.altKey || event.ctrlKey || event.metaKey) return true;
   const target = event.target;
@@ -112,7 +119,7 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
         type: 'noteon',
         midiNote,
         velocity,
-        timestamp: performance.now(),
+        timestamp: getEventTimestamp(event),
         source: 'mock',
       });
     };
@@ -129,12 +136,12 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
         type: 'noteoff',
         midiNote,
         velocity: 0,
-        timestamp: performance.now(),
+        timestamp: getEventTimestamp(event),
         source: 'mock',
       });
     };
 
-    const handleBlur = () => {
+    const handleBlur = (event: FocusEvent) => {
       if (activeKeysRef.current.size === 0) return;
       const keys = Array.from(activeKeysRef.current.values());
       activeKeysRef.current.clear();
@@ -146,7 +153,7 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
           type: 'noteoff',
           midiNote,
           velocity: 0,
-          timestamp: performance.now(),
+          timestamp: getEventTimestamp(event),
           source: 'mock',
         });
       });
