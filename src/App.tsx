@@ -19,7 +19,6 @@ function App() {
   );
   const [error, setError] = useState<string | null>(null);
   const [parsedLesson, setParsedLesson] = useState<ParsedLesson | null>(null);
-  const [normalizedLesson, setNormalizedLesson] = useState<Lesson | null>(null);
 
   const selectedLesson = useMemo(
     () => lessons.find((lesson) => lesson.id === selectedLessonId) ?? null,
@@ -30,7 +29,6 @@ function App() {
     /* eslint-disable react-hooks/set-state-in-effect */
     if (!selectedLesson) {
       setParsedLesson(null);
-      setNormalizedLesson(null);
       return;
     }
 
@@ -42,7 +40,6 @@ function App() {
       .then((result) => {
         if (!isActive) return;
         setParsedLesson(result);
-        setNormalizedLesson(normalizeLesson(result, selectedLesson.id));
         setStatus('ready');
         console.log('Parsed lesson output', result);
       })
@@ -52,7 +49,6 @@ function App() {
           err instanceof Error ? err.message : 'Failed to parse lesson.',
         );
         setStatus('error');
-        setNormalizedLesson(null);
       });
 
     return () => {
@@ -60,6 +56,14 @@ function App() {
     };
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [selectedLesson]);
+
+  const normalizedLesson = useMemo(() => {
+    if (!parsedLesson || !selectedLesson) {
+      return null;
+    }
+
+    return normalizeLesson(parsedLesson, selectedLesson.id);
+  }, [parsedLesson, selectedLesson]);
 
   return (
     <div className="min-h-screen px-6 py-10">
@@ -186,10 +190,8 @@ function App() {
                     </div>
                   </div>
                 </div>
-
               </>
             )}
-
           </section>
         </div>
 
