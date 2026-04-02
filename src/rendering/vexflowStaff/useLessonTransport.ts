@@ -17,23 +17,21 @@ type UseLessonTransportOptions = {
 type UseLessonTransportResult = {
   beatNumber: number | null;
   countInRemaining: number | null;
-  getTransportSnapshot: (timestamp: number) => TransportSnapshot | null;
   handlePlayPause: () => Promise<void>;
   isRunning: boolean;
   phase: TransportPhase;
   reconfigureTransport: (nextTempoBpm: number) => void;
   resetTransport: () => void;
-  setOnSnapshot: (
-    listener: ((snapshot: TransportSnapshot) => void) | null,
-  ) => void;
+  transportSnapshot: TransportSnapshot;
 };
 
-function createIdleSnapshot(): TransportSnapshot {
+function createIdleSnapshot(timestampMs: number): TransportSnapshot {
   return {
     phase: 'idle',
     currentBeat: 0,
     elapsedMs: 0,
     beatsElapsed: 0,
+    timestampMs,
   };
 }
 
@@ -56,22 +54,14 @@ function useLessonTransport({
   const phaseRef = useRef<TransportPhase>('idle');
   const countInRef = useRef<number | null>(null);
   const lastBeatIndexRef = useRef<number | null>(null);
-  const onSnapshotRef = useRef<((snapshot: TransportSnapshot) => void) | null>(
-    onSnapshot ?? null,
-  );
   const [phase, setPhase] = useState<TransportPhase>('idle');
   const [countInRemaining, setCountInRemaining] = useState<number | null>(null);
   const [beatNumber, setBeatNumber] = useState<number | null>(null);
-
-  useEffect(() => {
-    onSnapshotRef.current = onSnapshot ?? null;
-  }, [onSnapshot]);
-
-  const setOnSnapshot = useCallback(
-    (listener: ((snapshot: TransportSnapshot) => void) | null) => {
-      onSnapshotRef.current = listener;
-    },
-    [],
+  const [transportSnapshot, setTransportSnapshot] = useState<TransportSnapshot>(
+    () =>
+      createIdleSnapshot(
+        typeof performance === 'undefined' ? 0 : performance.now(),
+      ),
   );
 
   const stopLoop = useCallback(() => {
@@ -126,15 +116,8 @@ function useLessonTransport({
     [beatsPerMeasure, playClick],
   );
 
-  const getTransportSnapshot = useCallback((timestamp: number) => {
-    return transportRef.current.update(timestamp);
-  }, []);
-
-  const startLoop = useCallback(() => {
-    if (animationFrameRef.current !== null) return;
-
-    const step = (now: number) => {
-      const snapshot = transportRef.current.update(now);
+  const publishSnapshot = useCallback(
+    (snapshot: TransportSnapshot) => {
       const nextCountIn =
         snapshot.phase === 'count-in'
           ? Math.max(0, Math.ceil(beatsPerMeasure - snapshot.beatsElapsed))
@@ -142,7 +125,18 @@ function useLessonTransport({
 
       syncStatus(snapshot.phase, nextCountIn);
       updateBeatState(snapshot);
-      onSnapshotRef.current?.(snapshot);
+      setTransportSnapshot(snapshot);
+      onSnapshot?.(snapshot);
+    },
+    [beatsPerMeasure, onSnapshot, syncStatus, updateBeatState],
+  );
+
+  const startLoop = useCallback(() => {
+    if (animationFrameRef.current !== null) return;
+
+    const step = (now: number) => {
+      const snapshot = transportRef.current.update(now);
+      publishSnapshot(snapshot);
 
       if (snapshot.phase === 'playing' || snapshot.phase === 'count-in') {
         animationFrameRef.current = requestAnimationFrame(step);
@@ -152,7 +146,7 @@ function useLessonTransport({
     };
 
     animationFrameRef.current = requestAnimationFrame(step);
-  }, [beatsPerMeasure, syncStatus, updateBeatState]);
+  }, [publishSnapshot]);
 
   const handlePlayPause = useCallback(async () => {
     const transport = transportRef.current;
@@ -162,14 +156,7 @@ function useLessonTransport({
       stopLoop();
 
       const snapshot = transport.update(performance.now());
-      const nextCountIn =
-        snapshot.phase === 'count-in'
-          ? Math.max(0, Math.ceil(beatsPerMeasure - snapshot.beatsElapsed))
-          : null;
-
-      syncStatus(snapshot.phase, nextCountIn);
-      updateBeatState(snapshot);
-      onSnapshotRef.current?.(snapshot);
+      publishSnapshot(snapshot);
       return;
     }
 
@@ -177,38 +164,28 @@ function useLessonTransport({
     transport.start(performance.now());
 
     const snapshot = transport.update(performance.now());
-    const nextCountIn =
-      snapshot.phase === 'count-in'
-        ? Math.max(0, Math.ceil(beatsPerMeasure - snapshot.beatsElapsed))
-        : null;
-
-    syncStatus(snapshot.phase, nextCountIn);
-    updateBeatState(snapshot);
-    onSnapshotRef.current?.(snapshot);
+    publishSnapshot(snapshot);
     startLoop();
-  }, [beatsPerMeasure, ensureAudioContext, startLoop, stopLoop, syncStatus, updateBeatState]);
+  }, [ensureAudioContext, publishSnapshot, startLoop, stopLoop]);
 
   const resetTransport = useCallback(() => {
     transportRef.current.reset();
     stopLoop();
-    syncStatus('idle', null);
-    lastBeatIndexRef.current = null;
-    setBeatNumber(null);
-    onSnapshotRef.current?.(createIdleSnapshot());
-  }, [stopLoop, syncStatus]);
+    publishSnapshot(createIdleSnapshot(performance.now()));
+  }, [publishSnapshot, stopLoop]);
 
-  const reconfigureTransport = useCallback((nextTempoBpm: number) => {
-    transportRef.current = new TransportClock({
-      tempoBpm: nextTempoBpm,
-      countInBeats: beatsPerMeasure,
-      totalBeats,
-    });
-    stopLoop();
-    syncStatus('idle', null);
-    lastBeatIndexRef.current = null;
-    setBeatNumber(null);
-    onSnapshotRef.current?.(createIdleSnapshot());
-  }, [beatsPerMeasure, stopLoop, syncStatus, totalBeats]);
+  const reconfigureTransport = useCallback(
+    (nextTempoBpm: number) => {
+      transportRef.current = new TransportClock({
+        tempoBpm: nextTempoBpm,
+        countInBeats: beatsPerMeasure,
+        totalBeats,
+      });
+      stopLoop();
+      publishSnapshot(createIdleSnapshot(performance.now()));
+    },
+    [beatsPerMeasure, publishSnapshot, stopLoop, totalBeats],
+  );
 
   useEffect(() => {
     return () => {
@@ -219,13 +196,12 @@ function useLessonTransport({
   return {
     beatNumber,
     countInRemaining,
-    getTransportSnapshot,
     handlePlayPause,
     isRunning: phase === 'playing' || phase === 'count-in',
     phase,
     reconfigureTransport,
     resetTransport,
-    setOnSnapshot,
+    transportSnapshot,
   };
 }
 

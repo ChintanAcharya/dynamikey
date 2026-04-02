@@ -1,25 +1,17 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { formatMidiNote } from '../input/noteUtils';
 import type { Lesson, NoteEvent } from '../musicxml/normalizeLesson';
 import { getLessonLastBeat } from './vexflowStaff/lessonMetrics';
 import VexFlowScrollingStaff from './vexflowStaff/VexFlowScrollingStaff';
-import type { NoteFeedbackMap } from './vexflowStaff/scrollingRenderer';
 import VexFlowStaffFeedback from './vexflowStaff/VexFlowStaffFeedback';
 import VexFlowStaffInfo from './vexflowStaff/VexFlowStaffInfo';
 import VexFlowStaffPlayer from './vexflowStaff/VexFlowStaffPlayer';
 import useLessonTransport from './vexflowStaff/useLessonTransport';
 import useMetronomeAudio from './vexflowStaff/useMetronomeAudio';
 import useMidiLessonFeedback from './vexflowStaff/useMidiLessonFeedback';
-import type { TransportSnapshot } from '../transport/transportClock';
 
 type VexFlowStaffProps = {
   lesson: Lesson;
-};
-
-type StaffRenderState = {
-  currentBeat: number;
-  feedbackRevision: number;
-  noteStatuses: NoteFeedbackMap;
 };
 
 type TimingGrade =
@@ -39,18 +31,8 @@ const TIMING_GRADE_THRESHOLDS = {
 const MIN_TIMING_WINDOW_MS = 1;
 const MISS_GRACE_MS = 30;
 
-const DEFAULT_STAFF_RENDER_STATE = {
-  currentBeat: 0,
-  feedbackRevision: 0,
-  noteStatuses: new Map(),
-} as const;
-
 function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   const [tempoBpm, setTempoBpm] = useState(Math.round(lesson.defaultTempo));
-
-  const [staffRenderState, setStaffRenderState] = useState<StaffRenderState>(
-    DEFAULT_STAFF_RENDER_STATE,
-  );
 
   const beatsPerMeasure = lesson.timeSignature[0];
   const playableNotes = useMemo(
@@ -90,106 +72,61 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     [timingWindowBeats],
   );
 
-  const renderScrollingStaff = useCallback(
-    (
-      currentBeat: number,
-      noteStatuses: NoteFeedbackMap,
-      feedbackRevision: number,
-    ) => {
-      setStaffRenderState((previous) => {
-        if (
-          previous.currentBeat === currentBeat &&
-          previous.noteStatuses === noteStatuses &&
-          previous.feedbackRevision === feedbackRevision
-        ) {
-          return previous;
-        }
-
-        return {
-          currentBeat,
-          feedbackRevision,
-          noteStatuses,
-        };
-      });
-    },
-    [],
-  );
-
   const metronomeAudio = useMetronomeAudio();
+
+  const {
+    currentNoteIndex,
+    feedbackDetail,
+    feedbackIndicator,
+    feedbackRevision,
+    flashKey,
+    handleTransportSnapshot,
+    noteStatuses,
+    resetFeedbackState,
+  } = useMidiLessonFeedback({
+    gradeTiming,
+    missGraceBeats,
+    playableNotes,
+    tempoBpm,
+    timingWindowBeats,
+    totalBeats,
+    velocityTolerance,
+  });
 
   const {
     beatNumber,
     countInRemaining,
-    getTransportSnapshot,
     handlePlayPause: togglePlayback,
     isRunning,
     phase,
     reconfigureTransport,
     resetTransport,
-    setOnSnapshot,
+    transportSnapshot,
   } = useLessonTransport({
     beatsPerMeasure,
     ensureAudioContext: metronomeAudio.ensureAudioContext,
+    onSnapshot: handleTransportSnapshot,
     playClick: metronomeAudio.playClick,
     tempoBpm,
     totalBeats,
   });
 
-  const {
-    applyTransportSnapshot,
-    currentNoteIndex,
-    feedbackDetail,
-    feedbackIndicator,
-    flashKey,
-    resetFeedbackState,
-  } = useMidiLessonFeedback({
-    getTransportSnapshot,
-    gradeTiming,
-    missGraceBeats,
-    onRenderUpdate: renderScrollingStaff,
-    playableNotes,
-    timingWindowBeats,
-    velocityTolerance,
-  });
-
-  useEffect(() => {
-    const handleTransportSnapshot = (snapshot: TransportSnapshot) => {
-      setStaffRenderState((previous) => {
-        if (previous.currentBeat === snapshot.currentBeat) {
-          return previous;
-        }
-
-        return {
-          ...previous,
-          currentBeat: snapshot.currentBeat,
-        };
-      });
-      applyTransportSnapshot(snapshot);
-    };
-
-    setOnSnapshot(handleTransportSnapshot);
-
-    return () => {
-      setOnSnapshot(null);
-    };
-  }, [applyTransportSnapshot, setOnSnapshot]);
-
   const currentNote = playableNotes[currentNoteIndex] ?? null;
 
   const handlePlayPause = async () => {
     if (phase === 'ended') {
-      resetFeedbackState(0);
+      resetFeedbackState();
     }
     await togglePlayback();
   };
 
   const handleReset = () => {
     resetTransport();
-    resetFeedbackState(0);
+    resetFeedbackState();
   };
 
   const handleTempoChange = (value: number) => {
-    resetFeedbackState(0);
+    resetFeedbackState();
     reconfigureTransport(value);
     setTempoBpm(value);
   };
@@ -225,10 +162,10 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       </div>
 
       <VexFlowScrollingStaff
-        currentBeat={staffRenderState.currentBeat}
-        feedbackRevision={staffRenderState.feedbackRevision}
+        currentBeat={transportSnapshot.currentBeat}
+        feedbackRevision={feedbackRevision}
         lesson={lesson}
-        noteStatuses={staffRenderState.noteStatuses}
+        noteStatuses={noteStatuses}
       />
     </div>
   );

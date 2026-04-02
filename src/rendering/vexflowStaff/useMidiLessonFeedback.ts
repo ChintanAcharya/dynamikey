@@ -25,68 +25,69 @@ export type FeedbackDetail = {
 type PlayableNote = NoteEvent & { midiNote: number };
 
 type UseMidiLessonFeedbackOptions = {
-  getTransportSnapshot: (timestamp: number) => TransportSnapshot | null;
   gradeTiming: (deltaBeats: number) => string;
   missGraceBeats: number;
-  onRenderUpdate: (
-    currentBeat: number,
-    noteStatuses: NoteFeedbackMap,
-    feedbackRevision: number,
-  ) => void;
   playableNotes: PlayableNote[];
+  tempoBpm: number;
   timingWindowBeats: number;
+  totalBeats: number;
   velocityTolerance: number;
 };
 
 type UseMidiLessonFeedbackResult = {
-  applyTransportSnapshot: (snapshot: TransportSnapshot) => void;
   currentNoteIndex: number;
   feedbackDetail: FeedbackDetail;
   feedbackIndicator: FeedbackIndicator;
+  feedbackRevision: number;
   flashKey: number;
-  resetFeedbackState: (currentBeat: number) => void;
+  handleTransportSnapshot: (snapshot: TransportSnapshot) => void;
+  noteStatuses: NoteFeedbackMap;
+  resetFeedbackState: () => void;
 };
 
 function useMidiLessonFeedback({
-  getTransportSnapshot,
   gradeTiming,
   missGraceBeats,
-  onRenderUpdate,
   playableNotes,
+  tempoBpm,
   timingWindowBeats,
+  totalBeats,
   velocityTolerance,
 }: UseMidiLessonFeedbackOptions): UseMidiLessonFeedbackResult {
   const noteStatusesRef = useRef<NoteFeedbackMap>(new Map());
-  const feedbackRevisionRef = useRef(0);
+  const transportSnapshotRef = useRef<TransportSnapshot>({
+    phase: 'idle',
+    currentBeat: 0,
+    elapsedMs: 0,
+    beatsElapsed: 0,
+    timestampMs: 0,
+  });
   const noteIndexRef = useRef(0);
   const expectedFlashIndexRef = useRef(0);
   const [currentNoteIndex, setCurrentNoteIndex] = useState(0);
   const [feedbackIndicator, setFeedbackIndicator] =
     useState<FeedbackIndicator>('ready');
+  const [feedbackRevision, setFeedbackRevision] = useState(0);
   const [feedbackDetail, setFeedbackDetail] = useState<FeedbackDetail>({
     timing: 'Waiting',
     velocity: 'Waiting',
   });
   const [flashKey, setFlashKey] = useState(0);
+  const [noteStatuses, setNoteStatuses] = useState<NoteFeedbackMap>(
+    () => new Map(),
+  );
 
   const bumpFeedbackRevision = useCallback(() => {
-    feedbackRevisionRef.current += 1;
+    setFeedbackRevision((previous) => previous + 1);
+  }, []);
+
+  const syncNoteStatuses = useCallback(() => {
+    setNoteStatuses(new Map(noteStatusesRef.current));
   }, []);
 
   const triggerFlash = useCallback(() => {
     setFlashKey((previous) => previous + 1);
   }, []);
-
-  const emitRenderUpdate = useCallback(
-    (currentBeat: number) => {
-      onRenderUpdate(
-        currentBeat,
-        noteStatusesRef.current,
-        feedbackRevisionRef.current,
-      );
-    },
-    [onRenderUpdate],
-  );
 
   const syncNextPendingNote = useCallback(() => {
     let nextIndex = noteIndexRef.current;
@@ -158,6 +159,7 @@ function useMidiLessonFeedback({
       }
 
       if (didUpdate) {
+        syncNoteStatuses();
         bumpFeedbackRevision();
         setFeedbackIndicator('miss');
         setFeedbackDetail({ timing: 'Missed', velocity: 'No input' });
@@ -170,6 +172,7 @@ function useMidiLessonFeedback({
       bumpFeedbackRevision,
       missGraceBeats,
       playableNotes,
+      syncNoteStatuses,
       syncNextPendingNote,
       timingWindowBeats,
     ],
@@ -212,8 +215,9 @@ function useMidiLessonFeedback({
   );
 
   const resetFeedbackState = useCallback(
-    (currentBeat: number) => {
+    () => {
       noteStatusesRef.current.clear();
+      syncNoteStatuses();
       bumpFeedbackRevision();
       noteIndexRef.current = 0;
       expectedFlashIndexRef.current = 0;
@@ -221,38 +225,67 @@ function useMidiLessonFeedback({
       setFeedbackIndicator('ready');
       setFeedbackDetail({ timing: 'Waiting', velocity: 'Waiting' });
       setFlashKey(0);
-      emitRenderUpdate(currentBeat);
     },
-    [bumpFeedbackRevision, emitRenderUpdate],
+    [bumpFeedbackRevision, syncNoteStatuses],
   );
 
-  const applyTransportSnapshot = useCallback(
-    (snapshot: TransportSnapshot) => {
-      updateExpectedNoteFlash(snapshot);
-      if (markMissedNotes(snapshot)) {
-        emitRenderUpdate(snapshot.currentBeat);
+  const resolveSnapshotAtTimestamp = useCallback(
+    (timestamp: number): TransportSnapshot => {
+      const snapshot = transportSnapshotRef.current;
+      if (
+        timestamp <= snapshot.timestampMs ||
+        (snapshot.phase !== 'playing' && snapshot.phase !== 'count-in')
+      ) {
+        return snapshot;
       }
+
+      const msPerBeat = tempoBpm > 0 ? 60000 / tempoBpm : 1000;
+      const deltaMs = timestamp - snapshot.timestampMs;
+      const deltaBeats = deltaMs / msPerBeat;
+      const elapsedMs = snapshot.elapsedMs + deltaMs;
+      const beatsElapsed = snapshot.beatsElapsed + deltaBeats;
+      const nextCurrentBeat = snapshot.currentBeat + deltaBeats;
+
+      if (nextCurrentBeat >= totalBeats) {
+        return {
+          ...snapshot,
+          phase: 'ended',
+          currentBeat: totalBeats,
+          elapsedMs,
+          beatsElapsed,
+          timestampMs: timestamp,
+        };
+      }
+
+      const phase: TransportSnapshot['phase'] =
+        nextCurrentBeat < 0 ? 'count-in' : 'playing';
+
+      return {
+        ...snapshot,
+        phase,
+        currentBeat: nextCurrentBeat,
+        elapsedMs,
+        beatsElapsed,
+        timestampMs: timestamp,
+      };
     },
-    [emitRenderUpdate, markMissedNotes, updateExpectedNoteFlash],
+    [tempoBpm, totalBeats],
   );
 
   const handleInputEvent = useCallback(
     (event: MidiNoteEvent) => {
       if (event.type !== 'noteon') return;
 
-      const snapshot = getTransportSnapshot(event.timestamp);
-      if (!snapshot || snapshot.phase !== 'playing') return;
+      const snapshot = resolveSnapshotAtTimestamp(event.timestamp);
+      if (snapshot.phase !== 'playing') return;
 
-      const didMarkMisses = markMissedNotes(snapshot);
+      markMissedNotes(snapshot);
 
       const matchingNoteIndex = findMatchingNoteIndex(
         event.midiNote,
         snapshot.currentBeat,
       );
       if (matchingNoteIndex < 0) {
-        if (didMarkMisses) {
-          emitRenderUpdate(snapshot.currentBeat);
-        }
         return;
       }
 
@@ -272,6 +305,7 @@ function useMidiLessonFeedback({
             )}`;
 
       noteStatusesRef.current.set(note.id, status);
+      syncNoteStatuses();
       bumpFeedbackRevision();
       setFeedbackIndicator(status === 'warn' ? 'warn' : 'hit');
       setFeedbackDetail({
@@ -280,19 +314,27 @@ function useMidiLessonFeedback({
       });
 
       syncNextPendingNote();
-      emitRenderUpdate(snapshot.currentBeat);
     },
     [
-      emitRenderUpdate,
       bumpFeedbackRevision,
       findMatchingNoteIndex,
-      getTransportSnapshot,
       gradeTiming,
       markMissedNotes,
       playableNotes,
+      resolveSnapshotAtTimestamp,
+      syncNoteStatuses,
       syncNextPendingNote,
       velocityTolerance,
     ],
+  );
+
+  const handleTransportSnapshot = useCallback(
+    (snapshot: TransportSnapshot) => {
+      transportSnapshotRef.current = snapshot;
+      updateExpectedNoteFlash(snapshot);
+      markMissedNotes(snapshot);
+    },
+    [markMissedNotes, updateExpectedNoteFlash],
   );
 
   useEffect(() => {
@@ -302,11 +344,13 @@ function useMidiLessonFeedback({
   }, [handleInputEvent]);
 
   return {
-    applyTransportSnapshot,
     currentNoteIndex,
     feedbackDetail,
     feedbackIndicator,
+    feedbackRevision,
     flashKey,
+    handleTransportSnapshot,
+    noteStatuses,
     resetFeedbackState,
   };
 }

@@ -16,6 +16,7 @@ export type TransportSnapshot = {
   currentBeat: number;
   elapsedMs: number;
   beatsElapsed: number;
+  timestampMs: number;
 };
 
 /**
@@ -85,6 +86,7 @@ export class TransportClock {
         currentBeat: 0,
         elapsedMs: 0,
         beatsElapsed: 0,
+        timestampMs: nowMs,
       };
     }
 
@@ -103,6 +105,7 @@ export class TransportClock {
         currentBeat,
         elapsedMs,
         beatsElapsed,
+        timestampMs: nowMs,
       };
     }
 
@@ -125,6 +128,7 @@ export class TransportClock {
       currentBeat,
       elapsedMs,
       beatsElapsed,
+      timestampMs: nowMs,
     };
   }
 
