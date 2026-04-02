@@ -145,10 +145,7 @@ function normalizeKeyMode(mode: string | null): KeyMode {
  * @param mode - Key mode.
  * @returns VexFlow key signature string or null when unavailable.
  */
-function mapFifthsToKeySignature(
-  fifths: number,
-  mode: KeyMode,
-): string | null {
+function mapFifthsToKeySignature(fifths: number, mode: KeyMode): string | null {
   const map = mode === 'minor' ? MINOR_KEY_SIGNATURES : MAJOR_KEY_SIGNATURES;
   return map[fifths] ?? null;
 }
@@ -169,15 +166,6 @@ function parseXmlKeySignature(xml: string): string | null {
   if (Number.isNaN(fifths)) return null;
   const modeText = keyNode.querySelector('mode')?.textContent ?? null;
   return mapFifthsToKeySignature(fifths, normalizeKeyMode(modeText));
-}
-
-/**
- * Read the real-value from an OSMD Fraction.
- * @param fraction - Fraction value from OSMD.
- * @returns Numeric value or null when absent.
- */
-function readFractionValue(fraction: Fraction): number | null {
-  return fraction.RealValue;
 }
 
 /**
@@ -361,9 +349,7 @@ function parseXmlNoteMidis(xml: string) {
       const semitone = STEP_TO_SEMITONE[step.toUpperCase()];
       if (semitone === undefined) continue;
       const midi =
-        (octave + 1) * 12 +
-        semitone +
-        (Number.isNaN(alter) ? 0 : alter);
+        (octave + 1) * 12 + semitone + (Number.isNaN(alter) ? 0 : alter);
       midis.push(midi);
     }
     return midis;
@@ -498,7 +484,11 @@ function extractDynamicsFromEntry(
   const staffIndex = entry.ParentStaff?.idInMusicSheet;
   if (!parentMeasure || typeof staffIndex !== 'number') return [];
   const expressions = parentMeasure.StaffLinkedExpressions[staffIndex] ?? [];
-  return extractDynamicsFromExpressions(expressions, entry.Timestamp, startBeat);
+  return extractDynamicsFromExpressions(
+    expressions,
+    entry.Timestamp,
+    startBeat,
+  );
 }
 
 /**
@@ -530,7 +520,9 @@ function extractDynamicsFromExpressions(
     }
 
     if (expression.CombinedExpressionsText) {
-      candidates.push(normalizeDynamicLabel(expression.CombinedExpressionsText));
+      candidates.push(
+        normalizeDynamicLabel(expression.CombinedExpressionsText),
+      );
     }
 
     for (const candidate of candidates) {
@@ -570,10 +562,10 @@ function extractMeasures(
      */
     function processEntry(entry: SourceStaffEntry) {
       const voiceEntries = entry.VoiceEntries;
-      const entryStartBeat = readFractionValue(entry.Timestamp);
+      const entryStartBeat = entry.Timestamp.RealValue;
       if (Array.isArray(voiceEntries)) {
         for (const voiceEntry of voiceEntries) {
-          const startBeat = readFractionValue(voiceEntry.Timestamp);
+          const startBeat = voiceEntry.Timestamp.RealValue;
           const notes = voiceEntry.Notes;
           if (Array.isArray(notes)) {
             for (const note of notes) {
