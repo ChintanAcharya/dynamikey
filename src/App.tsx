@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import InputSection from './components/InputSection';
 import LessonList from './components/LessonList';
 import MainStaffRenderer from './components/MainStaffRenderer';
@@ -33,7 +33,9 @@ function App() {
             selectedLessonId={selectedLessonId}
             onSelectLesson={setSelectedLessonId}
           />
-          <MainStaffRenderer selectedLesson={selectedLesson} />
+          <Suspense>
+            <MainStaffRenderer selectedLesson={selectedLesson} />
+          </Suspense>
         </div>
 
         <InputSection />
