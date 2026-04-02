@@ -15,6 +15,10 @@ import {
   type NoteFeedbackStatus,
   type ScrollingRenderer,
 } from './vexflowStaff/scrollingRenderer';
+import VexFlowScrollingStaff from './vexflowStaff/VexFlowScrollingStaff';
+import VexFlowStaffFeedback from './vexflowStaff/VexFlowStaffFeedback';
+import VexFlowStaffInfo from './vexflowStaff/VexFlowStaffInfo';
+import VexFlowStaffPlayer from './vexflowStaff/VexFlowStaffPlayer';
 
 type VexFlowStaffProps = {
   lesson: Lesson;
@@ -133,31 +137,6 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   );
 
   const isRunning = phase === 'playing' || phase === 'count-in';
-  const feedbackLabel =
-    feedbackIndicator === 'miss'
-      ? 'MISS'
-      : feedbackIndicator === 'ready'
-        ? 'READY'
-        : 'HIT';
-  const feedbackTone =
-    feedbackIndicator === 'miss'
-      ? 'border-red-500/30 bg-red-500/10 text-red-700'
-      : feedbackIndicator === 'warn'
-        ? 'border-amber-500/40 bg-amber-500/15 text-amber-700'
-        : feedbackIndicator === 'hit'
-          ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700'
-          : 'border-black/10 bg-black/5 text-black/60';
-  const feedbackPillTone =
-    feedbackIndicator === 'miss'
-      ? 'border border-red-500/40 bg-red-500/10 text-red-700'
-      : feedbackIndicator === 'warn'
-        ? 'border border-amber-500/50 bg-amber-500/15 text-amber-800'
-        : feedbackIndicator === 'hit'
-          ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-700'
-          : 'border border-black/10 bg-white/70 text-black/70';
-
-  const feedbackTiming = feedbackDetail.timing;
-  const feedbackVelocity = feedbackDetail.velocity;
 
   /**
    * Lazily initialize and resume the AudioContext for metronome clicks.
@@ -626,142 +605,51 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     resetFeedbackState(0);
   };
 
+  const handleTempoChange = (value: number) => {
+    stopLoop();
+    syncStatus('idle', null);
+    lastBeatIndexRef.current = null;
+    setBeatNumber(null);
+    resetFeedbackState(0);
+    setTempoBpm(value);
+  };
+
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
-        <button
-          type="button"
-          onClick={handlePlayPause}
-          className="rounded-full border border-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:border-black/40"
-        >
-          {isRunning ? 'Pause' : 'Play'}
-        </button>
-        <button
-          type="button"
-          onClick={handleReset}
-          className="rounded-full border border-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:border-black/40"
-        >
-          Reset
-        </button>
-        <div className="flex flex-1 flex-wrap items-center gap-3">
-          <span className="text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
-            Tempo
-          </span>
-          <input
-            type="range"
-            min={40}
-            max={160}
-            step={1}
-            value={tempoBpm}
-            onChange={(event) => {
-              const value = Number(event.target.value);
-              if (!Number.isNaN(value)) {
-                stopLoop();
-                syncStatus('idle', null);
-                lastBeatIndexRef.current = null;
-                setBeatNumber(null);
-                resetFeedbackState(0);
-                setTempoBpm(value);
-              }
-            }}
-            className="h-1 w-full max-w-[200px] accent-black"
-          />
-          <span className="text-xs font-semibold text-black tabular-nums">
-            {tempoBpm} BPM
-          </span>
-        </div>
-        <span className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
-          {phase.replace('-', ' ')}
-        </span>
-        {phase === 'count-in' && typeof countInRemaining === 'number' && (
-          <span className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
-            Count-in: {countInRemaining}
-          </span>
-        )}
-        {typeof beatNumber === 'number' && (
-          <span className="rounded-full border border-black/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
-            Beat: {beatNumber}
-          </span>
-        )}
-      </div>
+      <VexFlowStaffPlayer
+        beatNumber={beatNumber}
+        countInRemaining={countInRemaining}
+        isRunning={isRunning}
+        onPlayPause={handlePlayPause}
+        onReset={handleReset}
+        onTempoChange={handleTempoChange}
+        phase={phase}
+        tempoBpm={tempoBpm}
+      />
 
       <div className="rounded-2xl border border-black/10 bg-white p-4">
-        <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-semibold uppercase tracking-[0.2em]">
-              Feedback
-            </div>
-            <div
-              className={`flash-indicator ${
-                flashKey % 2 === 0 ? '' : 'flash-indicator--on'
-              }`}
-            />
-          </div>
-          <div className="mt-2 text-4xl font-semibold">{feedbackLabel}</div>
-          <div className="mt-4 grid grid-cols-2 gap-6">
-            <div className="min-w-0">
-              <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/50">
-                Velocity
-              </div>
-              <div className="mt-1 min-h-[2.5rem] flex items-center">
-                <span
-                  className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-semibold truncate ${feedbackPillTone}`}
-                >
-                  {feedbackVelocity}
-                </span>
-              </div>
-            </div>
-            <div className="min-w-0">
-              <div className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-black/50">
-                Timing
-              </div>
-              <div className="mt-1 min-h-[2.5rem] flex items-center">
-                <span
-                  className={`inline-flex max-w-full items-center rounded-full px-3 py-1 text-xs font-semibold truncate ${feedbackPillTone}`}
-                >
-                  {feedbackTiming}
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-              Current note
-            </div>
-            <div className="mt-2 text-2xl font-semibold text-black">
-              {currentNote ? formatMidiNote(currentNote.midiNote) : '—'}
-            </div>
-            <div className="text-xs text-black/50">
-              Target velocity {currentNote ? currentNote.velocityTarget : '—'}
-            </div>
-          </div>
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-              Windows
-            </div>
-            <div className="mt-2 text-sm text-black/70">
-              Timing ±{Math.round(timingWindowMs)} ms
-            </div>
-            <div className="text-sm text-black/70">
-              Velocity ±{velocityTolerance}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div
-        ref={viewportRef}
-        className="relative w-full overflow-hidden rounded-2xl border border-black/10 bg-white"
-        style={staffHeight ? { height: staffHeight } : undefined}
-      >
-        <div ref={renderRootRef} className="absolute left-0 top-0" />
-        <div
-          ref={playheadRef}
-          className="pointer-events-none absolute top-0 h-full w-px bg-red-500/80"
+        <VexFlowStaffFeedback
+          flashKey={flashKey}
+          indicator={feedbackIndicator}
+          timing={feedbackDetail.timing}
+          velocity={feedbackDetail.velocity}
+        />
+        <VexFlowStaffInfo
+          currentNoteLabel={
+            currentNote ? formatMidiNote(currentNote.midiNote) : '—'
+          }
+          targetVelocity={currentNote?.velocityTarget ?? null}
+          timingWindowMs={timingWindowMs}
+          velocityTolerance={velocityTolerance}
         />
       </div>
+
+      <VexFlowScrollingStaff
+        playheadRef={playheadRef}
+        renderRootRef={renderRootRef}
+        staffHeight={staffHeight}
+        viewportRef={viewportRef}
+      />
     </div>
   );
 }
