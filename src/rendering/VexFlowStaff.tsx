@@ -102,10 +102,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     () => timingWindowMs / msPerBeat,
     [timingWindowMs, msPerBeat],
   );
-  const missGraceBeats = useMemo(
-    () => MISS_GRACE_MS / msPerBeat,
-    [msPerBeat],
-  );
+  const missGraceBeats = useMemo(() => MISS_GRACE_MS / msPerBeat, [msPerBeat]);
   const velocityTolerance = lesson.scoring.velocityTolerance;
 
   const gradeTiming = useCallback(
@@ -158,6 +155,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         : feedbackIndicator === 'hit'
           ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-700'
           : 'border border-black/10 bg-white/70 text-black/70';
+
   const feedbackTiming = feedbackDetail.timing;
   const feedbackVelocity = feedbackDetail.velocity;
 
