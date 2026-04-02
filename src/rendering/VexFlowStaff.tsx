@@ -39,16 +39,17 @@ const TIMING_GRADE_THRESHOLDS = {
 const MIN_TIMING_WINDOW_MS = 1;
 const MISS_GRACE_MS = 30;
 
+const DEFAULT_STAFF_RENDER_STATE = {
+  currentBeat: 0,
+  feedbackRevision: 0,
+  noteStatuses: new Map(),
+} as const;
+
 function VexFlowStaff({ lesson }: VexFlowStaffProps) {
-  const [tempoBpm, setTempoBpm] = useState(() =>
-    Math.round(lesson.defaultTempo),
-  );
+  const [tempoBpm, setTempoBpm] = useState(Math.round(lesson.defaultTempo));
+
   const [staffRenderState, setStaffRenderState] = useState<StaffRenderState>(
-    () => ({
-      currentBeat: 0,
-      feedbackRevision: 0,
-      noteStatuses: new Map(),
-    }),
+    DEFAULT_STAFF_RENDER_STATE,
   );
 
   const beatsPerMeasure = lesson.timeSignature[0];
@@ -60,6 +61,7 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       ),
     [lesson],
   );
+
   const totalBeats = useMemo(
     () => getLessonLastBeat(lesson, beatsPerMeasure),
     [lesson, beatsPerMeasure],
