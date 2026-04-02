@@ -64,19 +64,14 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
     () => getLessonLastBeat(lesson, beatsPerMeasure),
     [lesson, beatsPerMeasure],
   );
-  const msPerBeat = useMemo(
-    () => (tempoBpm > 0 ? 60000 / tempoBpm : 1000),
-    [tempoBpm],
+
+  const msPerBeat = tempoBpm > 0 ? 60000 / tempoBpm : 1000;
+  const timingWindowMs = Math.max(
+    lesson.scoring.timingToleranceMs,
+    MIN_TIMING_WINDOW_MS,
   );
-  const timingWindowMs = useMemo(
-    () => Math.max(lesson.scoring.timingToleranceMs, MIN_TIMING_WINDOW_MS),
-    [lesson.scoring.timingToleranceMs],
-  );
-  const timingWindowBeats = useMemo(
-    () => timingWindowMs / msPerBeat,
-    [timingWindowMs, msPerBeat],
-  );
-  const missGraceBeats = useMemo(() => MISS_GRACE_MS / msPerBeat, [msPerBeat]);
+  const timingWindowBeats = timingWindowMs / msPerBeat;
+  const missGraceBeats = MISS_GRACE_MS / msPerBeat;
   const velocityTolerance = lesson.scoring.velocityTolerance;
 
   const gradeTiming = useCallback(
