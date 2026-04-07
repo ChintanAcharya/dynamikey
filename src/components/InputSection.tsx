@@ -7,11 +7,8 @@ import WebMidiInput from '../features/input/WebMidiInput';
  */
 function InputSection() {
   return (
-    <section className="rounded-3xl border border-black/10 bg-white/85 p-6">
-      <div className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-        Inputs
-      </div>
-      <div className="grid gap-4 lg:grid-cols-2">
+    <section className="p-4">
+      <div className="grid gap-8 lg:grid-rows-2">
         <WebMidiInput />
         <MockKeyboardInput />
       </div>

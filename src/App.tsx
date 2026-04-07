@@ -1,5 +1,13 @@
 import { Suspense } from 'react';
-import { Link, Navigate, Outlet, Route, Routes, useParams } from 'react-router';
+import {
+  Link,
+  Navigate,
+  Outlet,
+  Route,
+  Routes,
+  useLocation,
+  useParams,
+} from 'react-router';
 
 import InputSection from './components/InputSection';
 import MainStaffRenderer from './components/MainStaffRenderer';
@@ -35,6 +43,7 @@ function App() {
     <Routes>
       <Route element={<AppLayout />}>
         <Route index element={<DefaultLessonRedirect />} />
+        <Route path="input" element={<InputRoute />} />
         <Route path="lesson/:id" element={<LessonRoute />} />
         <Route path="*" element={<DefaultLessonRedirect />} />
       </Route>
@@ -43,11 +52,16 @@ function App() {
 }
 
 function AppLayout() {
+  const location = useLocation();
   const { id } = useParams();
   const selectedLesson = findLessonById(id);
   const defaultLessonPath = defaultLesson
     ? getLessonPath(defaultLesson.id)
     : null;
+  const isInputRoute = location.pathname === '/input';
+  const breadcrumbTitle = isInputRoute
+    ? 'Input'
+    : (selectedLesson?.title ?? 'Lesson');
 
   return (
     <SidebarProvider>
@@ -66,20 +80,22 @@ function AppLayout() {
             />
             <Breadcrumb>
               <BreadcrumbList>
-                <BreadcrumbItem className="hidden md:block">
-                  {defaultLessonPath ? (
-                    <BreadcrumbLink asChild>
-                      <Link to={defaultLessonPath}>Lessons</Link>
-                    </BreadcrumbLink>
-                  ) : (
-                    <BreadcrumbPage>Lessons</BreadcrumbPage>
-                  )}
-                </BreadcrumbItem>
-                <BreadcrumbSeparator className="hidden md:block" />
+                {isInputRoute ? null : (
+                  <>
+                    <BreadcrumbItem className="hidden md:block">
+                      {defaultLessonPath ? (
+                        <BreadcrumbLink asChild>
+                          <Link to={defaultLessonPath}>Lessons</Link>
+                        </BreadcrumbLink>
+                      ) : (
+                        <BreadcrumbPage>Lessons</BreadcrumbPage>
+                      )}
+                    </BreadcrumbItem>
+                    <BreadcrumbSeparator className="hidden md:block" />
+                  </>
+                )}
                 <BreadcrumbItem>
-                  <BreadcrumbPage>
-                    {selectedLesson?.title ?? 'Lesson'}
-                  </BreadcrumbPage>
+                  <BreadcrumbPage>{breadcrumbTitle}</BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
@@ -112,9 +128,12 @@ function LessonRoute() {
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <MainStaffRenderer selectedLesson={selectedLesson} />
-      <InputSection />
     </Suspense>
   );
+}
+
+function InputRoute() {
+  return <InputSection />;
 }
 
 function NoLessonsState() {

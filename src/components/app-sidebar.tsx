@@ -12,7 +12,7 @@ import { MusicIcon, CableIcon, GaugeIcon, LibraryIcon } from 'lucide-react';
 
 import type { LessonSource } from '@/features/musicxml/lessonCatalog';
 import { getLessonPath } from '@/features/musicxml/lessonCatalog';
-import { Link } from 'react-router';
+import { Link, useLocation } from 'react-router';
 
 type AppSidebarProps = {
   defaultLessonPath: string | null;
@@ -21,7 +21,10 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar(props: AppSidebarProps) {
+  const location = useLocation();
   const { defaultLessonPath, selectedLessonId, lessons } = props;
+  const isLessonRoute = location.pathname.startsWith('/lesson/');
+  const isInputRoute = location.pathname === '/input';
   const lessonNavItems = lessons.map((lesson) => ({
     title: lesson.title,
     url: getLessonPath(lesson.id),
@@ -33,7 +36,7 @@ export function AppSidebar(props: AppSidebarProps) {
       title: 'Lessons',
       url: defaultLessonPath ?? undefined,
       icon: <LibraryIcon />,
-      isActive: true,
+      isActive: isLessonRoute,
       items: lessonNavItems,
     },
     {
@@ -42,7 +45,9 @@ export function AppSidebar(props: AppSidebarProps) {
     },
     {
       title: 'Input',
+      url: '/input',
       icon: <CableIcon />,
+      isActive: isInputRoute,
     },
   ];
 
