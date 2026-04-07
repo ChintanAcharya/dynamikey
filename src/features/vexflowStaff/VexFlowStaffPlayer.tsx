@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 import type { TransportPhase } from '@/features/transport/transportClock';
 
 type VexFlowStaffPlayerProps = {
@@ -23,20 +24,12 @@ function VexFlowStaffPlayer({
 }: VexFlowStaffPlayerProps) {
   return (
     <div className="flex flex-wrap items-center gap-3 text-sm text-black/70">
-      <button
-        type="button"
-        onClick={onPlayPause}
-        className="rounded-full border border-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:border-black/40"
-      >
+      <Button type="button" onClick={onPlayPause}>
         {isRunning ? 'Pause' : 'Play'}
-      </button>
-      <button
-        type="button"
-        onClick={onReset}
-        className="rounded-full border border-black/20 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-black transition hover:border-black/40"
-      >
+      </Button>
+      <Button type="button" onClick={onReset}>
         Reset
-      </button>
+      </Button>
       <div className="flex flex-1 flex-wrap items-center gap-3">
         <span className="text-xs font-semibold uppercase tracking-[0.2em] text-black/50">
           Tempo
