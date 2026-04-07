@@ -33,7 +33,7 @@ function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
   }, [parsedLesson, selectedLesson]);
 
   return (
-    <section className="rounded-3xl border border-black/10 bg-white/85 p-6 shadow-[0_20px_80px_rgba(15,15,15,0.08)]">
+    <section className="rounded-3xl border border-black/10 bg-white/85 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-black">Parser Output</h2>

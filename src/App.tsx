@@ -1,8 +1,23 @@
 import { Suspense, useMemo, useState } from 'react';
 import InputSection from './components/InputSection';
-import LessonList from './components/LessonList';
 import MainStaffRenderer from './components/MainStaffRenderer';
 import { lessons } from './features/musicxml/lessonCatalog';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from './components/ui/sidebar';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from './components/ui/breadcrumb';
+
+import { AppSidebar } from './components/app-sidebar';
+import { Separator } from './components/ui/separator';
 
 /**
  * Render the main app layout and drive lesson selection/parsing state.
@@ -19,28 +34,39 @@ function App() {
   );
 
   return (
-    <div className="min-h-screen px-6 py-10">
-      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8">
-        <header className="rounded-3xl border border-black/10 bg-white/80 p-8 shadow-[0_30px_120px_rgba(15,15,15,0.1)] backdrop-blur">
-          <h1 className="mt-3 text-4xl font-semibold leading-tight text-black">
-            MIDI Dynamics Trainer
-          </h1>
+    <SidebarProvider>
+      <AppSidebar lessons={lessons} selectedLessonId={selectedLessonId} />
+      <SidebarInset>
+        <header className="flex h-16 shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <Separator
+              orientation="vertical"
+              className="mr-2 data-[orientation=vertical]:h-4"
+            />
+            <Breadcrumb>
+              <BreadcrumbList>
+                <BreadcrumbItem className="hidden md:block">
+                  <BreadcrumbLink href="#">
+                    Build Your Application
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator className="hidden md:block" />
+                <BreadcrumbItem>
+                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                </BreadcrumbItem>
+              </BreadcrumbList>
+            </Breadcrumb>
+          </div>
         </header>
-
-        <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-          <LessonList
-            lessons={lessons}
-            selectedLessonId={selectedLessonId}
-            onSelectLesson={setSelectedLessonId}
-          />
-          <Suspense>
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+          <Suspense fallback={<div>Loading...</div>}>
             <MainStaffRenderer selectedLesson={selectedLesson} />
+            <InputSection />
           </Suspense>
         </div>
-
-        <InputSection />
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }
 
