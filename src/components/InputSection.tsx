@@ -1,4 +1,5 @@
 import MockKeyboardInput from '../features/input/MockKeyboardInput';
+import RecentInputEventsCard from '../features/input/RecentInputEventsCard';
 import WebMidiInput from '../features/input/WebMidiInput';
 
 /**
@@ -7,9 +8,10 @@ import WebMidiInput from '../features/input/WebMidiInput';
  */
 function InputSection() {
   return (
-    <section className="grid gap-4 lg:grid-rows-2">
+    <section className="flex flex-col gap-4">
       <WebMidiInput />
       <MockKeyboardInput />
+      <RecentInputEventsCard />
     </section>
   );
 }

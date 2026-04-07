@@ -36,7 +36,6 @@ type InputRuntimeValue = {
   activeNotes: number[];
   error: string | null;
   inputs: MIDIInput[];
-  recentMockEvents: MidiNoteEvent[];
   requestMidiAccess: () => Promise<void>;
   selectedInputId: string;
   setSelectedInputId: (value: string) => void;
@@ -98,7 +97,6 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
   const [selectedInputId, setSelectedInputId] = useState('');
   const [velocity, setVelocity] = useState(96);
   const [activeNotes, setActiveNotes] = useState<number[]>([]);
-  const [recentMockEvents, setRecentMockEvents] = useState<MidiNoteEvent[]>([]);
 
   const refreshInputs = useCallback((access: MIDIAccess) => {
     const nextInputs = Array.from(access.inputs.values());
@@ -175,11 +173,6 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
     setActiveNotes(nextNotes);
   }, []);
 
-  const emitMockEvent = useCallback((event: MidiNoteEvent) => {
-    emitInput(event);
-    setRecentMockEvents((previous) => [event, ...previous].slice(0, 4));
-  }, []);
-
   useEffect(() => {
     const access = accessRef.current;
     if (!access) return;
@@ -216,7 +209,7 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
 
       activeKeysRef.current.add(key);
       syncActiveNotes();
-      emitMockEvent({
+      emitInput({
         type: 'noteon',
         midiNote,
         velocity,
@@ -235,7 +228,7 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
 
       activeKeysRef.current.delete(key);
       syncActiveNotes();
-      emitMockEvent({
+      emitInput({
         type: 'noteoff',
         midiNote,
         velocity: 0,
@@ -255,7 +248,7 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
         const midiNote = KEY_TO_MIDI[key];
         if (typeof midiNote !== 'number') return;
 
-        emitMockEvent({
+        emitInput({
           type: 'noteoff',
           midiNote,
           velocity: 0,
@@ -274,7 +267,7 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('keyup', handleKeyUp);
       window.removeEventListener('blur', handleBlur);
     };
-  }, [emitMockEvent, syncActiveNotes, velocity]);
+  }, [syncActiveNotes, velocity]);
 
   useEffect(() => {
     return () => {
@@ -307,7 +300,6 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
       activeNotes,
       error,
       inputs,
-      recentMockEvents,
       requestMidiAccess,
       selectedInputId,
       setSelectedInputId,
@@ -320,7 +312,6 @@ export function InputRuntimeProvider({ children }: { children: ReactNode }) {
       activeNotes,
       error,
       inputs,
-      recentMockEvents,
       requestMidiAccess,
       selectedInputId,
       status,
