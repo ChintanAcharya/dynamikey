@@ -7,11 +7,9 @@ import WebMidiInput from '../features/input/WebMidiInput';
  */
 function InputSection() {
   return (
-    <section className="p-4">
-      <div className="grid gap-8 lg:grid-rows-2">
-        <WebMidiInput />
-        <MockKeyboardInput />
-      </div>
+    <section className="grid gap-4 lg:grid-rows-2">
+      <WebMidiInput />
+      <MockKeyboardInput />
     </section>
   );
 }

@@ -30,7 +30,7 @@ function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
   }, [parsedLesson, selectedLesson]);
 
   return (
-    <section className="p-4">
+    <section>
       {parsedLesson && (
         <>
           {normalizedLesson && (
