@@ -30,28 +30,11 @@ function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
   }, [parsedLesson, selectedLesson]);
 
   return (
-    <section className="rounded-3xl border border-black/10 bg-white/85 p-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-lg font-semibold text-black">Parser Output</h2>
-          <p className="text-sm text-black/60">{selectedLesson.title}</p>
-        </div>
-      </div>
-
+    <section className="p-4">
       {parsedLesson && (
         <>
           {normalizedLesson && (
-            <div className="mt-6">
-              <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-                VexFlow Preview
-              </div>
-              <div className="rounded-2xl border border-black/10 bg-white p-4">
-                <VexFlowStaff
-                  key={normalizedLesson.id}
-                  lesson={normalizedLesson}
-                />
-              </div>
-            </div>
+            <VexFlowStaff key={normalizedLesson.id} lesson={normalizedLesson} />
           )}
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">

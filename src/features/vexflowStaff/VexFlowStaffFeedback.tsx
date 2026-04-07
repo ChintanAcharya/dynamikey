@@ -33,7 +33,7 @@ function VexFlowStaffFeedback({
           : 'border border-black/10 bg-white/70 text-black/70';
 
   return (
-    <div className={`rounded-2xl border p-4 ${feedbackTone}`}>
+    <div className={`rounded-2xl border mt-4 p-4 ${feedbackTone}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-xs font-semibold uppercase tracking-[0.2em]">
           Feedback

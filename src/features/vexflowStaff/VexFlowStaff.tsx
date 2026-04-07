@@ -145,22 +145,20 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
         tempoBpm={tempoBpm}
       />
 
-      <div className="rounded-2xl border border-black/10 bg-white p-4">
-        <VexFlowStaffFeedback
-          flashKey={flashKey}
-          indicator={feedbackIndicator}
-          timing={feedbackDetail.timing}
-          velocity={feedbackDetail.velocity}
-        />
-        <VexFlowStaffInfo
-          currentNoteLabel={
-            currentNote ? formatMidiNote(currentNote.midiNote) : '—'
-          }
-          targetVelocity={currentNote?.velocityTarget ?? null}
-          timingWindowMs={timingWindowMs}
-          velocityTolerance={velocityTolerance}
-        />
-      </div>
+      <VexFlowStaffFeedback
+        flashKey={flashKey}
+        indicator={feedbackIndicator}
+        timing={feedbackDetail.timing}
+        velocity={feedbackDetail.velocity}
+      />
+      <VexFlowStaffInfo
+        currentNoteLabel={
+          currentNote ? formatMidiNote(currentNote.midiNote) : '—'
+        }
+        targetVelocity={currentNote?.velocityTarget ?? null}
+        timingWindowMs={timingWindowMs}
+        velocityTolerance={velocityTolerance}
+      />
 
       <VexFlowScrollingStaff
         currentBeat={transportSnapshot.currentBeat}
