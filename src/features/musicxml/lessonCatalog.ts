@@ -34,3 +34,27 @@ export const lessons: LessonSource[] = Object.entries(lessonModules).map(
     };
   },
 );
+
+export const defaultLesson = lessons[0] ?? null;
+
+/**
+ * Resolve a lesson by route id.
+ * @param id - Lesson id from the router.
+ * @returns Matching lesson or null.
+ */
+export function findLessonById(id: string | undefined) {
+  if (!id) {
+    return null;
+  }
+
+  return lessons.find((lesson) => lesson.id === id) ?? null;
+}
+
+/**
+ * Build the lesson route path for a lesson id.
+ * @param id - Lesson id.
+ * @returns Router path.
+ */
+export function getLessonPath(id: string) {
+  return `/lesson/${encodeURIComponent(id)}`;
+}

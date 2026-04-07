@@ -5,7 +5,7 @@ import { parseLessonFromXml } from '../features/musicxml/osmdParser';
 import VexFlowStaff from '../features/vexflowStaff/VexFlowStaff';
 
 type MainStaffRendererProps = {
-  selectedLesson: LessonSource | null;
+  selectedLesson: LessonSource;
 };
 
 /**
@@ -14,18 +14,15 @@ type MainStaffRendererProps = {
  * @returns Parser output section.
  */
 function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
-  const parseLessonPromise = useMemo(() => {
-    if (!selectedLesson) {
-      return Promise.resolve(null);
-    }
-
-    return parseLessonFromXml(selectedLesson.xml);
-  }, [selectedLesson]);
+  const parseLessonPromise = useMemo(
+    () => parseLessonFromXml(selectedLesson.xml),
+    [selectedLesson],
+  );
 
   const parsedLesson = use(parseLessonPromise);
 
   const normalizedLesson = useMemo(() => {
-    if (!parsedLesson || !selectedLesson) {
+    if (!parsedLesson) {
       return null;
     }
 
@@ -37,9 +34,7 @@ function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-black">Parser Output</h2>
-          <p className="text-sm text-black/60">
-            {selectedLesson?.title ?? 'Select a lesson'}{' '}
-          </p>
+          <p className="text-sm text-black/60">{selectedLesson.title}</p>
         </div>
       </div>
 

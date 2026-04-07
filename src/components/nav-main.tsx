@@ -7,8 +7,6 @@ import {
 } from '@/components/ui/collapsible';
 
 import {
-  SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuAction,
   SidebarMenuButton,
@@ -19,32 +17,49 @@ import {
 } from '@/components/ui/sidebar';
 
 import { ChevronRightIcon } from 'lucide-react';
+import { Link } from 'react-router';
 
-export function NavMain({
-  items,
-}: {
-  items: {
-    title: string;
-    url: string;
-    icon: ReactNode;
-    isActive?: boolean;
-    items?: {
-      title: string;
-      url: string;
-    }[];
-  }[];
-}) {
+type NavSubItem = {
+  title: string;
+  url?: string;
+  isActive?: boolean;
+};
+
+type NavItem = {
+  title: string;
+  url?: string;
+  icon: ReactNode;
+  isActive?: boolean;
+  items?: NavSubItem[];
+};
+
+export function NavMain({ items }: { items: NavItem[] }) {
   return (
     <SidebarMenu>
       {items.map((item) => (
         <Collapsible key={item.title} asChild defaultOpen={item.isActive}>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip={item.title}>
-              <a href={item.url}>
+            {item.url ? (
+              <SidebarMenuButton
+                asChild
+                isActive={item.isActive}
+                tooltip={item.title}
+              >
+                <Link to={item.url}>
+                  {item.icon}
+                  <span>{item.title}</span>
+                </Link>
+              </SidebarMenuButton>
+            ) : (
+              <SidebarMenuButton
+                isActive={item.isActive}
+                tooltip={item.title}
+                type="button"
+              >
                 {item.icon}
                 <span>{item.title}</span>
-              </a>
-            </SidebarMenuButton>
+              </SidebarMenuButton>
+            )}
             {item.items?.length ? (
               <>
                 <CollapsibleTrigger asChild>
@@ -57,11 +72,20 @@ export function NavMain({
                   <SidebarMenuSub>
                     {item.items?.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
-                        <SidebarMenuSubButton asChild>
-                          <a href={subItem.url}>
+                        {subItem.url ? (
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={subItem.isActive}
+                          >
+                            <Link to={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        ) : (
+                          <SidebarMenuSubButton isActive={subItem.isActive}>
                             <span>{subItem.title}</span>
-                          </a>
-                        </SidebarMenuSubButton>
+                          </SidebarMenuSubButton>
+                        )}
                       </SidebarMenuSubItem>
                     ))}
                   </SidebarMenuSub>

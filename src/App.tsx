@@ -1,7 +1,14 @@
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense } from 'react';
+import { Link, Navigate, Outlet, Route, Routes, useParams } from 'react-router';
+
 import InputSection from './components/InputSection';
 import MainStaffRenderer from './components/MainStaffRenderer';
-import { lessons } from './features/musicxml/lessonCatalog';
+import {
+  defaultLesson,
+  findLessonById,
+  getLessonPath,
+  lessons,
+} from './features/musicxml/lessonCatalog';
 import {
   SidebarInset,
   SidebarProvider,
@@ -20,22 +27,35 @@ import { AppSidebar } from './components/app-sidebar';
 import { Separator } from './components/ui/separator';
 
 /**
- * Render the main app layout and drive lesson selection/parsing state.
+ * Render the application route tree.
  * @returns App element.
  */
 function App() {
-  const [selectedLessonId, setSelectedLessonId] = useState(
-    lessons[0]?.id ?? '',
+  return (
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DefaultLessonRedirect />} />
+        <Route path="lesson/:id" element={<LessonRoute />} />
+        <Route path="*" element={<DefaultLessonRedirect />} />
+      </Route>
+    </Routes>
   );
+}
 
-  const selectedLesson = useMemo(
-    () => lessons.find((lesson) => lesson.id === selectedLessonId) ?? null,
-    [selectedLessonId],
-  );
+function AppLayout() {
+  const { id } = useParams();
+  const selectedLesson = findLessonById(id);
+  const defaultLessonPath = defaultLesson
+    ? getLessonPath(defaultLesson.id)
+    : null;
 
   return (
     <SidebarProvider>
-      <AppSidebar lessons={lessons} selectedLessonId={selectedLessonId} />
+      <AppSidebar
+        defaultLessonPath={defaultLessonPath}
+        lessons={lessons}
+        selectedLessonId={selectedLesson?.id ?? ''}
+      />
       <SidebarInset>
         <header className="flex h-16 shrink-0 items-center gap-2">
           <div className="flex items-center gap-2 px-4">
@@ -47,26 +67,64 @@ function App() {
             <Breadcrumb>
               <BreadcrumbList>
                 <BreadcrumbItem className="hidden md:block">
-                  <BreadcrumbLink href="#">
-                    Build Your Application
-                  </BreadcrumbLink>
+                  {defaultLessonPath ? (
+                    <BreadcrumbLink asChild>
+                      <Link to={defaultLessonPath}>Lessons</Link>
+                    </BreadcrumbLink>
+                  ) : (
+                    <BreadcrumbPage>Lessons</BreadcrumbPage>
+                  )}
                 </BreadcrumbItem>
                 <BreadcrumbSeparator className="hidden md:block" />
                 <BreadcrumbItem>
-                  <BreadcrumbPage>Data Fetching</BreadcrumbPage>
+                  <BreadcrumbPage>
+                    {selectedLesson?.title ?? 'Lesson'}
+                  </BreadcrumbPage>
                 </BreadcrumbItem>
               </BreadcrumbList>
             </Breadcrumb>
           </div>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <Suspense fallback={<div>Loading...</div>}>
-            <MainStaffRenderer selectedLesson={selectedLesson} />
-            <InputSection />
-          </Suspense>
+          <Outlet />
         </div>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+function DefaultLessonRedirect() {
+  if (!defaultLesson) {
+    return <NoLessonsState />;
+  }
+
+  return <Navigate to={getLessonPath(defaultLesson.id)} replace />;
+}
+
+function LessonRoute() {
+  const { id } = useParams();
+  const selectedLesson = findLessonById(id);
+
+  if (!selectedLesson) {
+    return <DefaultLessonRedirect />;
+  }
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MainStaffRenderer selectedLesson={selectedLesson} />
+      <InputSection />
+    </Suspense>
+  );
+}
+
+function NoLessonsState() {
+  return (
+    <section className="rounded-3xl border border-black/10 bg-white/85 p-6">
+      <h2 className="text-lg font-semibold text-black">No lessons available</h2>
+      <p className="mt-2 text-sm text-black/60">
+        Add a MusicXML lesson under `lessons/` to populate the router.
+      </p>
+    </section>
   );
 }
 
