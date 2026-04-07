@@ -6,6 +6,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Field, FieldContent, FieldLabel } from '@/components/ui/field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import { useInputRuntime } from './InputRuntimeContext';
 import { Badge } from 'lucide-react';
@@ -57,25 +65,27 @@ function WebMidiInput() {
         )}
 
         {status === 'ready' && (
-          <div className="mt-4 grid gap-3">
-            <label className="text-xs font-semibold uppercase tracking-[0.2em] text-black/40">
-              Input device
-            </label>
-            <select
-              value={selectedInputId}
-              onChange={(event) => setSelectedInputId(event.target.value)}
-              className="rounded-xl border border-black/10 bg-white px-3 py-2 text-sm text-black"
-            >
-              {inputs.length === 0 && (
-                <option value="">No MIDI inputs found</option>
-              )}
-              {inputs.map((input) => (
-                <option key={input.id} value={input.id}>
-                  {input.name ?? 'Unknown device'}
-                </option>
-              ))}
-            </select>
-          </div>
+          <Field>
+            <FieldLabel>Input device</FieldLabel>
+            <FieldContent>
+              <Select
+                value={selectedInputId || undefined}
+                onValueChange={setSelectedInputId}
+                disabled={inputs.length === 0}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="No MIDI inputs found" />
+                </SelectTrigger>
+                <SelectContent>
+                  {inputs.map((input) => (
+                    <SelectItem key={input.id} value={input.id}>
+                      {input.name ?? 'Unknown device'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FieldContent>
+          </Field>
         )}
       </CardContent>
     </Card>
