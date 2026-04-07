@@ -271,8 +271,7 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
                   {event.type.toUpperCase()}
                 </div>
                 <div>
-                  {formatMidiNote(event.midiNote)} • velocity{' '}
-                  {event.velocity}
+                  {formatMidiNote(event.midiNote)} • velocity {event.velocity}
                 </div>
               </div>
             ))}

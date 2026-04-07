@@ -69,7 +69,9 @@ function WebMidiInput() {
     setStatus('requesting');
     setError(null);
     try {
-      const access = await navigatorWithMidi.requestMIDIAccess({ sysex: false });
+      const access = await navigatorWithMidi.requestMIDIAccess({
+        sysex: false,
+      });
       accessRef.current = access;
       access.onstatechange = () => refreshInputs(access);
       refreshInputs(access);

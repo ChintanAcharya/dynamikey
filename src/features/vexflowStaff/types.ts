@@ -7,7 +7,10 @@ export type NoteEntry = {
   absoluteBeat: number;
   durationBeats: number;
 };
-export type DynamicEntry = { absoluteBeat: number; tickable: TextDynamics | TextNote };
+export type DynamicEntry = {
+  absoluteBeat: number;
+  tickable: TextDynamics | TextNote;
+};
 export type HairpinSpan = {
   type: 'cresc' | 'dim';
   startBeat: number;
