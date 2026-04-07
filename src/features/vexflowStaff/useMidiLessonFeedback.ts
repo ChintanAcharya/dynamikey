@@ -1,17 +1,10 @@
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
-import { subscribeInput } from '../../input/inputBus';
-import type { MidiNoteEvent } from '../../input/midiEvents';
-import type { NoteEvent } from '../../musicxml/normalizeLesson';
-import type { TransportSnapshot } from '../../transport/transportClock';
-import type {
-  NoteFeedbackMap,
-  NoteFeedbackStatus,
-} from './scrollingRenderer';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { subscribeInput } from '@/features/input/inputBus';
+import type { MidiNoteEvent } from '@/features/input/midiEvents';
+import type { NoteEvent } from '@/features/musicxml/normalizeLesson';
+import type { TransportSnapshot } from '@/features/transport/transportClock';
+
+import type { NoteFeedbackMap, NoteFeedbackStatus } from './scrollingRenderer';
 
 const FLASH_BEAT_EPSILON = 1e-3;
 
@@ -214,20 +207,17 @@ function useMidiLessonFeedback({
     [playableNotes, timingWindowBeats],
   );
 
-  const resetFeedbackState = useCallback(
-    () => {
-      noteStatusesRef.current.clear();
-      syncNoteStatuses();
-      bumpFeedbackRevision();
-      noteIndexRef.current = 0;
-      expectedFlashIndexRef.current = 0;
-      setCurrentNoteIndex(0);
-      setFeedbackIndicator('ready');
-      setFeedbackDetail({ timing: 'Waiting', velocity: 'Waiting' });
-      setFlashKey(0);
-    },
-    [bumpFeedbackRevision, syncNoteStatuses],
-  );
+  const resetFeedbackState = useCallback(() => {
+    noteStatusesRef.current.clear();
+    syncNoteStatuses();
+    bumpFeedbackRevision();
+    noteIndexRef.current = 0;
+    expectedFlashIndexRef.current = 0;
+    setCurrentNoteIndex(0);
+    setFeedbackIndicator('ready');
+    setFeedbackDetail({ timing: 'Waiting', velocity: 'Waiting' });
+    setFlashKey(0);
+  }, [bumpFeedbackRevision, syncNoteStatuses]);
 
   const resolveSnapshotAtTimestamp = useCallback(
     (timestamp: number): TransportSnapshot => {

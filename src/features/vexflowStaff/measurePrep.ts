@@ -1,5 +1,6 @@
 import { Accidental, Formatter, GhostNote, Voice } from 'vexflow';
-import type { Lesson } from '../../musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/normalizeLesson';
+
 import { DYNAMICS_LINE, EPSILON } from './constants';
 import { buildDynamicsVoice, isExplicitDynamic } from './dynamics';
 import { beatsToDurationValue, splitBeatsToDurations } from './durations';

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Lesson } from '../../musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/normalizeLesson';
+
 import {
   createScrollingLessonRenderer,
   type NoteFeedbackMap,

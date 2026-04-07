@@ -1,5 +1,5 @@
-import MockKeyboardInput from '../input/MockKeyboardInput';
-import WebMidiInput from '../input/WebMidiInput';
+import MockKeyboardInput from '../features/input/MockKeyboardInput';
+import WebMidiInput from '../features/input/WebMidiInput';
 
 /**
  * Render the available MIDI input sources.

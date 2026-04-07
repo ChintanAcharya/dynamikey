@@ -1,8 +1,8 @@
 import { use, useMemo } from 'react';
-import type { LessonSource } from '../musicxml/lessonCatalog';
-import { normalizeLesson } from '../musicxml/normalizeLesson';
-import { parseLessonFromXml } from '../musicxml/osmdParser';
-import VexFlowStaff from '../rendering/VexFlowStaff';
+import type { LessonSource } from '../features/musicxml/lessonCatalog';
+import { normalizeLesson } from '../features/musicxml/normalizeLesson';
+import { parseLessonFromXml } from '../features/musicxml/osmdParser';
+import VexFlowStaff from '../features/vexflowStaff/VexFlowStaff';
 
 type MainStaffRendererProps = {
   selectedLesson: LessonSource | null;
@@ -51,7 +51,10 @@ function MainStaffRenderer({ selectedLesson }: MainStaffRendererProps) {
                 VexFlow Preview
               </div>
               <div className="rounded-2xl border border-black/10 bg-white p-4">
-                <VexFlowStaff key={normalizedLesson.id} lesson={normalizedLesson} />
+                <VexFlowStaff
+                  key={normalizedLesson.id}
+                  lesson={normalizedLesson}
+                />
               </div>
             </div>
           )}

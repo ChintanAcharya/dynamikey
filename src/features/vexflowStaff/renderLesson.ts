@@ -1,8 +1,13 @@
 import { Formatter, Renderer, Stave } from 'vexflow';
-import type { Lesson } from '../../musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/normalizeLesson';
+
 import { drawHairpins, collectHairpinSpans } from './hairpins';
 import { getLessonLastBeat } from './lessonMetrics';
-import { measureModifierWidth, rebalanceLines, splitMeasuresIntoLines } from './layout';
+import {
+  measureModifierWidth,
+  rebalanceLines,
+  splitMeasuresIntoLines,
+} from './layout';
 import { prepareMeasures } from './measurePrep';
 import type { DynamicEntry, NoteEntry } from './types';
 import { applyContextToVoices } from './voiceContext';
@@ -29,13 +34,7 @@ export function renderLesson(lesson: Lesson, container: HTMLDivElement) {
   const bottomPadding = 24;
 
   const modifierWidths = {
-    withHeader: measureModifierWidth(
-      beats,
-      beatUnit,
-      true,
-      true,
-      keySignature,
-    ),
+    withHeader: measureModifierWidth(beats, beatUnit, true, true, keySignature),
     withoutHeader: measureModifierWidth(beats, beatUnit, false, false, null),
   };
 

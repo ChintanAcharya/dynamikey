@@ -3,7 +3,7 @@ import {
   TransportClock,
   type TransportPhase,
   type TransportSnapshot,
-} from '../../transport/transportClock';
+} from '@/features/transport/transportClock';
 
 type UseLessonTransportOptions = {
   beatsPerMeasure: number;

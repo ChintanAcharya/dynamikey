@@ -1,4 +1,4 @@
-import type { TransportPhase } from '../../transport/transportClock';
+import type { TransportPhase } from '@/features/transport/transportClock';
 
 type VexFlowStaffPlayerProps = {
   beatNumber: number | null;

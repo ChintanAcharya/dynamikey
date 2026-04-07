@@ -1,5 +1,5 @@
 import { Modifier, StaveHairpin, TextDynamics, TextNote } from 'vexflow';
-import type { Measure } from '../../musicxml/normalizeLesson';
+import type { Measure } from '@/features/musicxml/normalizeLesson';
 import {
   DYNAMICS_GLYPH_SCALE,
   DYNAMICS_LINE,
@@ -10,7 +10,12 @@ import {
   HAIRPIN_Y_OFFSET,
 } from './constants';
 import { isExplicitDynamic } from './dynamics';
-import type { DynamicEntry, HairpinSpan, NoteEntry, VexFlowContext } from './types';
+import type {
+  DynamicEntry,
+  HairpinSpan,
+  NoteEntry,
+  VexFlowContext,
+} from './types';
 
 /**
  * Convert dynamics across measures into hairpin spans.

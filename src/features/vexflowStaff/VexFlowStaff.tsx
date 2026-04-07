@@ -1,14 +1,15 @@
 import { useCallback, useMemo, useState } from 'react';
-import { formatMidiNote } from '../input/noteUtils';
-import type { Lesson, NoteEvent } from '../musicxml/normalizeLesson';
-import { getLessonLastBeat } from './vexflowStaff/lessonMetrics';
-import VexFlowScrollingStaff from './vexflowStaff/VexFlowScrollingStaff';
-import VexFlowStaffFeedback from './vexflowStaff/VexFlowStaffFeedback';
-import VexFlowStaffInfo from './vexflowStaff/VexFlowStaffInfo';
-import VexFlowStaffPlayer from './vexflowStaff/VexFlowStaffPlayer';
-import useLessonTransport from './vexflowStaff/useLessonTransport';
-import useMetronomeAudio from './vexflowStaff/useMetronomeAudio';
-import useMidiLessonFeedback from './vexflowStaff/useMidiLessonFeedback';
+import { formatMidiNote } from '@/features/input/noteUtils';
+import type { Lesson, NoteEvent } from '@/features/musicxml/normalizeLesson';
+
+import { getLessonLastBeat } from './lessonMetrics';
+import VexFlowScrollingStaff from './VexFlowScrollingStaff';
+import VexFlowStaffFeedback from './VexFlowStaffFeedback';
+import VexFlowStaffInfo from './VexFlowStaffInfo';
+import VexFlowStaffPlayer from './VexFlowStaffPlayer';
+import useLessonTransport from './useLessonTransport';
+import useMetronomeAudio from './useMetronomeAudio';
+import useMidiLessonFeedback from './useMidiLessonFeedback';
 
 type VexFlowStaffProps = {
   lesson: Lesson;

@@ -2,7 +2,7 @@ import { Suspense, useMemo, useState } from 'react';
 import InputSection from './components/InputSection';
 import LessonList from './components/LessonList';
 import MainStaffRenderer from './components/MainStaffRenderer';
-import { lessons } from './musicxml/lessonCatalog';
+import { lessons } from './features/musicxml/lessonCatalog';
 
 /**
  * Render the main app layout and drive lesson selection/parsing state.

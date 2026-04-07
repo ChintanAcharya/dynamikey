@@ -1,4 +1,4 @@
-import type { LessonSource } from '../musicxml/lessonCatalog';
+import type { LessonSource } from '../features/musicxml/lessonCatalog';
 
 type LessonListProps = {
   lessons: LessonSource[];

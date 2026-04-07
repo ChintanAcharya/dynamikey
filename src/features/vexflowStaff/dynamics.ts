@@ -1,6 +1,11 @@
 import { GhostNote, TextDynamics, TextNote, Tickable, Voice } from 'vexflow';
-import type { Measure } from '../../musicxml/normalizeLesson';
-import { DURATION_VALUES, DYNAMICS_GLYPH_SCALE, DYNAMICS_TEXT_SIZE, EPSILON } from './constants';
+import type { Measure } from '@/features/musicxml/normalizeLesson';
+import {
+  DURATION_VALUES,
+  DYNAMICS_GLYPH_SCALE,
+  DYNAMICS_TEXT_SIZE,
+  EPSILON,
+} from './constants';
 import { splitBeatsToDurations } from './durations';
 import type { DynamicEntry } from './types';
 
@@ -20,17 +25,14 @@ export function isExplicitDynamic(type: string) {
  * @param line - Staff line for placement.
  * @returns TextDynamics or TextNote tickable.
  */
-function createDynamicsTickable(
-  label: string,
-  duration: string,
-  line: number,
-) {
+function createDynamicsTickable(label: string, duration: string, line: number) {
   const isGlyphText = /^[fpmzrs]+$/.test(label);
   if (isGlyphText) {
     const dynamics = new TextDynamics({ text: label, duration }).setLine(line);
     const glyphSize = dynamics.render_options?.glyph_font_size;
     if (typeof glyphSize === 'number') {
-      dynamics.render_options.glyph_font_size = glyphSize * DYNAMICS_GLYPH_SCALE;
+      dynamics.render_options.glyph_font_size =
+        glyphSize * DYNAMICS_GLYPH_SCALE;
     }
     return dynamics;
   }

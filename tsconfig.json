@@ -4,10 +4,4 @@
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" },
   ],
-  "compilerOptions": {
-    /* Path aliases */
-    "paths": {
-      "@/*": ["./src/*"],
-    },
-  },
 }

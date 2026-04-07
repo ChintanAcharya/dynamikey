@@ -1,5 +1,6 @@
 import { Formatter, Renderer, Stave } from 'vexflow';
-import type { Lesson } from '../../musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/normalizeLesson';
+
 import { EPSILON } from './constants';
 import { collectHairpinSpans, drawHairpins } from './hairpins';
 import type { DynamicEntry, NoteEntry } from './types';
@@ -202,9 +203,7 @@ export function createScrollingLessonRenderer(
         if (keySignature) {
           stave.addKeySignature(keySignature);
         }
-        stave.addTimeSignature(
-          `${layout.beatsPerMeasure}/${layout.beatUnit}`,
-        );
+        stave.addTimeSignature(`${layout.beatsPerMeasure}/${layout.beatUnit}`);
       }
       stave.setContext(context).draw();
 
@@ -305,8 +304,7 @@ export function createScrollingLessonRenderer(
             Math.min(1, (clampedBeat - currentGridBeat) / gridStepBeats),
           )
         : 0;
-    const { windowMeasures, windowStartBeat, key } =
-      selectWindow(clampedBeat);
+    const { windowMeasures, windowStartBeat, key } = selectWindow(clampedBeat);
     if (windowMeasures.length === 0) return;
     let didRender = false;
     if (!windowState || windowState.key !== key) {

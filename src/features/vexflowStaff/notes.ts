@@ -1,5 +1,5 @@
 import { StaveNote, Tickable } from 'vexflow';
-import type { Measure } from '../../musicxml/normalizeLesson';
+import type { Measure } from '@/features/musicxml/normalizeLesson';
 import type { NoteEntry } from './types';
 import {
   beatsToDurationValue,
@@ -24,10 +24,7 @@ export function buildMeasureNotes(measure: Measure, beatUnit: number) {
     const duration = String(beatsToDurationValue(note.durationBeats, beatUnit));
 
     if (!key) {
-      const restDurations = splitBeatsToDurations(
-        note.durationBeats,
-        beatUnit,
-      );
+      const restDurations = splitBeatsToDurations(note.durationBeats, beatUnit);
       restDurations.forEach((restDuration) => {
         const restNote = new StaveNote({
           keys: ['b/4'],

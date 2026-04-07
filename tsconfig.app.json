@@ -23,6 +23,15 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
+
+    /* Path aliases */
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/components/*": ["./src/components/*"],
+      "@/lib/*": ["./src/lib"],
+      "@/hooks": ["./src/hooks"],
+      "@/features/*": ["./src/features/*"],
+    },
   },
   "include": ["src"],
 }
