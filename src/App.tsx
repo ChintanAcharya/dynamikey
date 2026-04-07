@@ -33,6 +33,7 @@ import {
 
 import { AppSidebar } from './components/app-sidebar';
 import { Separator } from './components/ui/separator';
+import { InputRuntimeProvider } from './features/input/InputRuntimeContext';
 
 /**
  * Render the application route tree.
@@ -64,48 +65,50 @@ function AppLayout() {
     : (selectedLesson?.title ?? 'Lesson');
 
   return (
-    <SidebarProvider>
-      <AppSidebar
-        defaultLessonPath={defaultLessonPath}
-        lessons={lessons}
-        selectedLessonId={selectedLesson?.id ?? ''}
-      />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2">
-          <div className="flex items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator
-              orientation="vertical"
-              className="mr-2 data-[orientation=vertical]:h-4"
-            />
-            <Breadcrumb>
-              <BreadcrumbList>
-                {isInputRoute ? null : (
-                  <>
-                    <BreadcrumbItem className="hidden md:block">
-                      {defaultLessonPath ? (
-                        <BreadcrumbLink asChild>
-                          <Link to={defaultLessonPath}>Lessons</Link>
-                        </BreadcrumbLink>
-                      ) : (
-                        <BreadcrumbPage>Lessons</BreadcrumbPage>
-                      )}
-                    </BreadcrumbItem>
-                    <BreadcrumbSeparator className="hidden md:block" />
-                  </>
-                )}
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{breadcrumbTitle}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </BreadcrumbList>
-            </Breadcrumb>
+    <InputRuntimeProvider>
+      <SidebarProvider>
+        <AppSidebar
+          defaultLessonPath={defaultLessonPath}
+          lessons={lessons}
+          selectedLessonId={selectedLesson?.id ?? ''}
+        />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator
+                orientation="vertical"
+                className="mr-2 data-[orientation=vertical]:h-4"
+              />
+              <Breadcrumb>
+                <BreadcrumbList>
+                  {isInputRoute ? null : (
+                    <>
+                      <BreadcrumbItem className="hidden md:block">
+                        {defaultLessonPath ? (
+                          <BreadcrumbLink asChild>
+                            <Link to={defaultLessonPath}>Lessons</Link>
+                          </BreadcrumbLink>
+                        ) : (
+                          <BreadcrumbPage>Lessons</BreadcrumbPage>
+                        )}
+                      </BreadcrumbItem>
+                      <BreadcrumbSeparator className="hidden md:block" />
+                    </>
+                  )}
+                  <BreadcrumbItem>
+                    <BreadcrumbPage>{breadcrumbTitle}</BreadcrumbPage>
+                  </BreadcrumbItem>
+                </BreadcrumbList>
+              </Breadcrumb>
+            </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            <Outlet />
           </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-          <Outlet />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
+        </SidebarInset>
+      </SidebarProvider>
+    </InputRuntimeProvider>
   );
 }
 

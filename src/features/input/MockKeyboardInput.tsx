@@ -1,11 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { MidiNoteEvent } from './midiEvents';
-import { emitInput } from './inputBus';
+import { useMemo } from 'react';
 import { formatMidiNote } from './noteUtils';
-
-type MockKeyboardInputProps = {
-  onEvent?: (event: MidiNoteEvent) => void;
-};
+import { KEY_LAYOUT, useInputRuntime } from './InputRuntimeContext';
 
 type KeyMapping = {
   key: string;
@@ -14,60 +9,16 @@ type KeyMapping = {
   tone: 'white' | 'black';
 };
 
-const KEY_LAYOUT: KeyMapping[] = [
-  { key: 'a', midiNote: 60, label: 'A', tone: 'white' },
-  { key: 'w', midiNote: 61, label: 'W', tone: 'black' },
-  { key: 's', midiNote: 62, label: 'S', tone: 'white' },
-  { key: 'e', midiNote: 63, label: 'E', tone: 'black' },
-  { key: 'd', midiNote: 64, label: 'D', tone: 'white' },
-  { key: 'f', midiNote: 65, label: 'F', tone: 'white' },
-  { key: 't', midiNote: 66, label: 'T', tone: 'black' },
-  { key: 'g', midiNote: 67, label: 'G', tone: 'white' },
-  { key: 'y', midiNote: 68, label: 'Y', tone: 'black' },
-  { key: 'h', midiNote: 69, label: 'H', tone: 'white' },
-  { key: 'u', midiNote: 70, label: 'U', tone: 'black' },
-  { key: 'j', midiNote: 71, label: 'J', tone: 'white' },
-  { key: 'k', midiNote: 72, label: 'K', tone: 'white' },
-];
-
-const KEY_TO_MIDI = KEY_LAYOUT.reduce<Record<string, number>>((acc, entry) => {
-  acc[entry.key] = entry.midiNote;
-  return acc;
-}, {});
-
 const MIN_VELOCITY = 1;
 const MAX_VELOCITY = 127;
 
-const getEventTimestamp = (event: Event) => {
-  if (Number.isFinite(event.timeStamp) && event.timeStamp > 0) {
-    return event.timeStamp;
-  }
-  return performance.now();
-};
-
-const shouldIgnoreKeyEvent = (event: KeyboardEvent) => {
-  if (event.altKey || event.ctrlKey || event.metaKey) return true;
-  const target = event.target;
-  if (!(target instanceof HTMLElement)) return false;
-  return (
-    target.tagName === 'INPUT' ||
-    target.tagName === 'TEXTAREA' ||
-    target.tagName === 'SELECT' ||
-    target.isContentEditable
-  );
-};
-
 /**
  * Capture computer keyboard events and emit mock MIDI note events.
- * @param props - Component props.
  * @returns React element.
  */
-function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
-  const [velocity, setVelocity] = useState(96);
-  const [activeNotes, setActiveNotes] = useState<number[]>([]);
-  const [recentEvents, setRecentEvents] = useState<MidiNoteEvent[]>([]);
-  const activeKeysRef = useRef<Set<string>>(new Set());
-
+function MockKeyboardInput() {
+  const { activeNotes, recentMockEvents, setVelocity, velocity } =
+    useInputRuntime();
   const groupedKeys = useMemo(() => {
     const white: KeyMapping[] = [];
     const black: KeyMapping[] = [];
@@ -80,94 +31,6 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
     }
     return { white, black };
   }, []);
-
-  const emitEvent = useCallback(
-    (event: MidiNoteEvent) => {
-      emitInput(event);
-      onEvent?.(event);
-      setRecentEvents((prev) => {
-        const next = [event, ...prev];
-        return next.slice(0, 4);
-      });
-    },
-    [onEvent],
-  );
-
-  const syncActiveNotes = useCallback(() => {
-    const nextNotes: number[] = [];
-    activeKeysRef.current.forEach((key) => {
-      const midiNote = KEY_TO_MIDI[key];
-      if (typeof midiNote === 'number') {
-        nextNotes.push(midiNote);
-      }
-    });
-    nextNotes.sort((a, b) => a - b);
-    setActiveNotes(nextNotes);
-  }, []);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (shouldIgnoreKeyEvent(event)) return;
-      if (event.repeat) return;
-      const key = event.key.toLowerCase();
-      const midiNote = KEY_TO_MIDI[key];
-      if (typeof midiNote !== 'number') return;
-      if (activeKeysRef.current.has(key)) return;
-      activeKeysRef.current.add(key);
-      syncActiveNotes();
-      emitEvent({
-        type: 'noteon',
-        midiNote,
-        velocity,
-        timestamp: getEventTimestamp(event),
-        source: 'mock',
-      });
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      if (shouldIgnoreKeyEvent(event)) return;
-      const key = event.key.toLowerCase();
-      const midiNote = KEY_TO_MIDI[key];
-      if (typeof midiNote !== 'number') return;
-      if (!activeKeysRef.current.has(key)) return;
-      activeKeysRef.current.delete(key);
-      syncActiveNotes();
-      emitEvent({
-        type: 'noteoff',
-        midiNote,
-        velocity: 0,
-        timestamp: getEventTimestamp(event),
-        source: 'mock',
-      });
-    };
-
-    const handleBlur = (event: FocusEvent) => {
-      if (activeKeysRef.current.size === 0) return;
-      const keys = Array.from(activeKeysRef.current.values());
-      activeKeysRef.current.clear();
-      syncActiveNotes();
-      keys.forEach((key) => {
-        const midiNote = KEY_TO_MIDI[key];
-        if (typeof midiNote !== 'number') return;
-        emitEvent({
-          type: 'noteoff',
-          midiNote,
-          velocity: 0,
-          timestamp: getEventTimestamp(event),
-          source: 'mock',
-        });
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-      window.removeEventListener('blur', handleBlur);
-    };
-  }, [emitEvent, syncActiveNotes, velocity]);
 
   return (
     <div className="rounded-2xl border border-black/10 bg-white p-4">
@@ -257,12 +120,12 @@ function MockKeyboardInput({ onEvent }: MockKeyboardInputProps) {
             Recent events
           </div>
           <div className="mt-2 flex flex-col gap-2">
-            {recentEvents.length === 0 && (
+            {recentMockEvents.length === 0 && (
               <span className="text-xs text-black/50">
                 Play a note to see events.
               </span>
             )}
-            {recentEvents.map((event) => (
+            {recentMockEvents.map((event) => (
               <div
                 key={`${event.timestamp}-${event.type}-${event.midiNote}`}
                 className="rounded-xl border border-black/10 bg-black/5 px-3 py-2 text-xs text-black/70"
