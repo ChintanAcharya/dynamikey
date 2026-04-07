@@ -1,5 +1,7 @@
 # Contributing
 
+Contributions welcome. However, please raise an issue first to discuss.
+
 ## Run locally
 
 ### Prerequisites
