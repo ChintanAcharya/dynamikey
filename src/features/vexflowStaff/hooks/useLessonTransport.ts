@@ -15,8 +15,6 @@ type UseLessonTransportOptions = {
 };
 
 type UseLessonTransportResult = {
-  beatNumber: number | null;
-  countInRemaining: number | null;
   handlePlayPause: () => Promise<void>;
   isRunning: boolean;
   phase: TransportPhase;
@@ -55,8 +53,6 @@ function useLessonTransport({
   const countInRef = useRef<number | null>(null);
   const lastBeatIndexRef = useRef<number | null>(null);
   const [phase, setPhase] = useState<TransportPhase>('idle');
-  const [countInRemaining, setCountInRemaining] = useState<number | null>(null);
-  const [beatNumber, setBeatNumber] = useState<number | null>(null);
   const [transportSnapshot, setTransportSnapshot] = useState<TransportSnapshot>(
     () =>
       createIdleSnapshot(
@@ -79,7 +75,6 @@ function useLessonTransport({
       }
       if (countInRef.current !== nextCountIn) {
         countInRef.current = nextCountIn;
-        setCountInRemaining(nextCountIn);
       }
     },
     [],
@@ -90,7 +85,6 @@ function useLessonTransport({
       if (snapshot.phase === 'idle' || snapshot.phase === 'ended') {
         if (lastBeatIndexRef.current !== null) {
           lastBeatIndexRef.current = null;
-          setBeatNumber(null);
         }
         return;
       }
@@ -109,7 +103,6 @@ function useLessonTransport({
         const normalized =
           ((beatIndex % beatsPerMeasure) + beatsPerMeasure) % beatsPerMeasure;
         const nextBeat = normalized + 1;
-        setBeatNumber(nextBeat);
         playClick(nextBeat === 1);
       }
     },
@@ -194,8 +187,6 @@ function useLessonTransport({
   }, [stopLoop]);
 
   return {
-    beatNumber,
-    countInRemaining,
     handlePlayPause,
     isRunning: phase === 'playing' || phase === 'count-in',
     phase,

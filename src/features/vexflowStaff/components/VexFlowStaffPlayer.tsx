@@ -7,8 +7,6 @@ import { Slider } from '@/components/ui/slider';
 import type { TransportPhase } from '@/features/transport/transportClock';
 
 type VexFlowStaffPlayerProps = {
-  beatNumber: number | null;
-  countInRemaining: number | null;
   currentBeat: number;
   isRunning: boolean;
   onPlayPause: () => void | Promise<void>;
@@ -18,8 +16,6 @@ type VexFlowStaffPlayerProps = {
 };
 
 function VexFlowStaffPlayer({
-  beatNumber,
-  countInRemaining,
   currentBeat,
   isRunning,
   onPlayPause,
@@ -51,28 +47,8 @@ function VexFlowStaffPlayer({
             </Button>
           </div>
 
-          <div className="flex min-w-0 flex-1 flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="mt-1 text-sm font-medium capitalize text-foreground">
-                  {phaseLabel}
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="capitalize">
-                  {phaseLabel}
-                </Badge>
-                {phase === 'count-in' &&
-                typeof countInRemaining === 'number' ? (
-                  <Badge variant="outline">Count-in {countInRemaining}</Badge>
-                ) : null}
-                {typeof beatNumber === 'number' ? (
-                  <Badge variant="outline">Beat {beatNumber}</Badge>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="space-y-2">
+          <div className="flex min-w-0 flex-1 gap-4 items-center">
+            <div className="space-y-2 flex-1">
               <Slider
                 aria-label="Lesson position"
                 value={sliderValue}
@@ -80,12 +56,17 @@ function VexFlowStaffPlayer({
                 step={0.01}
                 disabled
               />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Start</span>
-                <span className="tabular-nums">
-                  {displayBeat} / {displayTotalBeats} beats
-                </span>
-                <span>End</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span className="tabular-nums">
+                {displayBeat} / {displayTotalBeats} beats
+              </span>
+            </div>
+            <div className="flex gap-3 items-center justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="capitalize">
+                  {phaseLabel}
+                </Badge>
               </div>
             </div>
           </div>

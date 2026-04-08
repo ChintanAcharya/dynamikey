@@ -96,8 +96,6 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   });
 
   const {
-    beatNumber,
-    countInRemaining,
     handlePlayPause: togglePlayback,
     isRunning,
     phase,
@@ -140,8 +138,6 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <VexFlowStaffPlayer
-        beatNumber={beatNumber}
-        countInRemaining={countInRemaining}
         currentBeat={currentBeat}
         isRunning={isRunning}
         onPlayPause={handlePlayPause}
