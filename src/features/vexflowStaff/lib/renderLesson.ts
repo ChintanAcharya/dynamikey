@@ -9,7 +9,7 @@ import {
   splitMeasuresIntoLines,
 } from './layout';
 import { prepareMeasures } from './measurePrep';
-import type { DynamicEntry, NoteEntry } from './types';
+import type { DynamicEntry, NoteEntry } from '../types';
 import { applyContextToVoices } from './voiceContext';
 
 /**

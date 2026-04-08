@@ -15,7 +15,7 @@ import type {
   HairpinSpan,
   NoteEntry,
   VexFlowContext,
-} from './types';
+} from '../types';
 
 /**
  * Convert dynamics across measures into hairpin spans.

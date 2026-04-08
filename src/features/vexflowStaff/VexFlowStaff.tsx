@@ -1,24 +1,16 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { formatMidiNote } from '@/features/input/noteUtils';
+import { formatMidiNote } from '@/features/input/lib/noteUtils';
 import type { Lesson, NoteEvent } from '@/features/musicxml/normalizeLesson';
 
-import { getLessonLastBeat } from './lessonMetrics';
-import VexFlowScrollingStaff from './VexFlowScrollingStaff';
-import VexFlowStaffFeedback from './VexFlowStaffFeedback';
-import VexFlowStaffInfo from './VexFlowStaffInfo';
-import VexFlowStaffPlayer from './VexFlowStaffPlayer';
-import useLessonTransport from './useLessonTransport';
-import useMetronomeAudio from './useMetronomeAudio';
-import useMidiLessonFeedback from './useMidiLessonFeedback';
+import { VexFlowTempoCard } from './components/VexFlowTempoCard';
+import VexFlowScrollingStaff from './components/VexFlowScrollingStaff';
+import VexFlowStaffFeedback from './components/VexFlowStaffFeedback';
+import VexFlowStaffInfo from './components/VexFlowStaffInfo';
+import VexFlowStaffPlayer from './components/VexFlowStaffPlayer';
+import useLessonTransport from './hooks/useLessonTransport';
+import useMetronomeAudio from './hooks/useMetronomeAudio';
+import useMidiLessonFeedback from './hooks/useMidiLessonFeedback';
+import { getLessonLastBeat } from './lib/lessonMetrics';
 
 type VexFlowStaffProps = {
   lesson: Lesson;
@@ -168,40 +160,10 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-1">
-          <CardHeader>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <CardTitle>Tempo</CardTitle>
-                <CardDescription>
-                  Adjust playback speed for the lesson.
-                </CardDescription>
-              </div>
-              <Badge variant="outline" className="tabular-nums">
-                {tempoBpm} BPM
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Slider
-              aria-label="Tempo"
-              value={[tempoBpm]}
-              min={40}
-              max={160}
-              step={1}
-              onValueChange={(values) => {
-                const value = values[0];
-                if (typeof value === 'number') {
-                  handleTempoChange(value);
-                }
-              }}
-            />
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>40 BPM</span>
-              <span>160 BPM</span>
-            </div>
-          </CardContent>
-        </Card>
+        <VexFlowTempoCard
+          tempoBpm={tempoBpm}
+          onTempoChange={handleTempoChange}
+        />
 
         <VexFlowStaffFeedback
           flashKey={flashKey}

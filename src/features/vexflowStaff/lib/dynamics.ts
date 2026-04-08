@@ -7,7 +7,7 @@ import {
   EPSILON,
 } from './constants';
 import { splitBeatsToDurations } from './durations';
-import type { DynamicEntry } from './types';
+import type { DynamicEntry } from '../types';
 
 /**
  * Determine whether a dynamic marking is explicit (not cresc/dim).

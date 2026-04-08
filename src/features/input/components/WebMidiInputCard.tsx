@@ -1,3 +1,5 @@
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardAction,
@@ -14,16 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { useInputRuntime } from '@/features/input/InputRuntimeContext';
 
-import { useInputRuntime } from './InputRuntimeContext';
-import { Badge } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-
-/**
- * Render controls for connecting and selecting Web MIDI devices.
- * @returns React element.
- */
-function WebMidiInput() {
+export function WebMidiInputCard() {
   const {
     error,
     inputs,
@@ -42,12 +37,11 @@ function WebMidiInput() {
           Connect a hardware controller to drive note events.
         </CardDescription>
         <CardAction>
-          {/* TODO: fix this */}
-          <Badge>{statusLabel}</Badge>
+          <Badge variant="outline">{statusLabel}</Badge>
         </CardAction>
       </CardHeader>
       <CardContent>
-        {status !== 'ready' && (
+        {status !== 'ready' ? (
           <Button
             type="button"
             onClick={() => {
@@ -56,15 +50,15 @@ function WebMidiInput() {
           >
             Enable MIDI
           </Button>
-        )}
+        ) : null}
 
-        {error && (
+        {error ? (
           <div className="mt-3 rounded-2xl border border-red-500/30 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
-        )}
+        ) : null}
 
-        {status === 'ready' && (
+        {status === 'ready' ? (
           <Field>
             <FieldLabel>Input device</FieldLabel>
             <FieldContent>
@@ -86,10 +80,8 @@ function WebMidiInput() {
               </Select>
             </FieldContent>
           </Field>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
 }
-
-export default WebMidiInput;

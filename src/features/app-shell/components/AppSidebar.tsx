@@ -1,4 +1,6 @@
-import { NavMain } from '@/components/nav-main';
+import { Link, useLocation } from 'react-router';
+import { CableIcon, GaugeIcon, LibraryIcon, MusicIcon } from 'lucide-react';
+
 import {
   Sidebar,
   SidebarContent,
@@ -7,22 +9,23 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
-
-import { MusicIcon, CableIcon, GaugeIcon, LibraryIcon } from 'lucide-react';
-
 import type { LessonSource } from '@/features/musicxml/lessonCatalog';
 import { getLessonPath } from '@/features/musicxml/lessonCatalog';
-import { Link, useLocation } from 'react-router';
+
+import { NavMain } from './NavMain';
 
 type AppSidebarProps = {
   defaultLessonPath: string | null;
-  selectedLessonId: string;
   lessons: LessonSource[];
+  selectedLessonId: string;
 };
 
-export function AppSidebar(props: AppSidebarProps) {
+export function AppSidebar({
+  defaultLessonPath,
+  lessons,
+  selectedLessonId,
+}: AppSidebarProps) {
   const location = useLocation();
-  const { defaultLessonPath, selectedLessonId, lessons } = props;
   const isLessonRoute = location.pathname.startsWith('/lesson/');
   const isInputRoute = location.pathname === '/input';
   const lessonNavItems = lessons.map((lesson) => ({

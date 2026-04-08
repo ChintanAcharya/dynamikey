@@ -6,7 +6,7 @@ import {
   createScrollingLessonRenderer,
   type NoteFeedbackMap,
   type ScrollingRenderer,
-} from './scrollingRenderer';
+} from '@/features/vexflowStaff/lib/scrollingRenderer';
 
 type VexFlowScrollingStaffProps = {
   currentBeat: number;

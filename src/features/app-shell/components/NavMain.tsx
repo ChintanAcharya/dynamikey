@@ -5,7 +5,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-
 import {
   SidebarMenu,
   SidebarMenuAction,
@@ -15,7 +14,6 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from '@/components/ui/sidebar';
-
 import { ChevronRightIcon } from 'lucide-react';
 import { Link } from 'react-router';
 
@@ -33,7 +31,11 @@ type NavItem = {
   items?: NavSubItem[];
 };
 
-export function NavMain({ items }: { items: NavItem[] }) {
+type NavMainProps = {
+  items: NavItem[];
+};
+
+export function NavMain({ items }: NavMainProps) {
   return (
     <SidebarMenu>
       {items.map((item) => (
@@ -70,7 +72,7 @@ export function NavMain({ items }: { items: NavItem[] }) {
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <SidebarMenuSub>
-                    {item.items?.map((subItem) => (
+                    {item.items.map((subItem) => (
                       <SidebarMenuSubItem key={subItem.title}>
                         {subItem.url ? (
                           <SidebarMenuSubButton

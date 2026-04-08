@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { subscribeInput } from '@/features/input/inputBus';
-import type { MidiNoteEvent } from '@/features/input/midiEvents';
+import { subscribeInput } from '@/features/input/lib/inputBus';
+import type { MidiNoteEvent } from '@/features/input/types';
 import type { NoteEvent } from '@/features/musicxml/normalizeLesson';
 import type { TransportSnapshot } from '@/features/transport/transportClock';
 
-import type { NoteFeedbackMap, NoteFeedbackStatus } from './scrollingRenderer';
+import type {
+  NoteFeedbackMap,
+  NoteFeedbackStatus,
+} from '@/features/vexflowStaff/lib/scrollingRenderer';
 
 const FLASH_BEAT_EPSILON = 1e-3;
 

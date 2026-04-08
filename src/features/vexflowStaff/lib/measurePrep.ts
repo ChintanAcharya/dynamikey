@@ -5,7 +5,7 @@ import { DYNAMICS_LINE, EPSILON } from './constants';
 import { buildDynamicsVoice, isExplicitDynamic } from './dynamics';
 import { beatsToDurationValue, splitBeatsToDurations } from './durations';
 import { buildMeasureNotes } from './notes';
-import type { DynamicEntry, NoteEntry } from './types';
+import type { DynamicEntry, NoteEntry } from '../types';
 
 export type PreparedMeasure = {
   voice: Voice;

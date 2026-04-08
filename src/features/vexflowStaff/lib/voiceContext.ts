@@ -1,5 +1,5 @@
 import type { Voice } from 'vexflow';
-import type { VexFlowContext } from './types';
+import type { VexFlowContext } from '../types';
 
 /**
  * Attach a rendering context to all tickables in the provided voices.

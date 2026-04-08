@@ -3,7 +3,7 @@ import type { Lesson } from '@/features/musicxml/normalizeLesson';
 
 import { EPSILON } from './constants';
 import { collectHairpinSpans, drawHairpins } from './hairpins';
-import type { DynamicEntry, NoteEntry } from './types';
+import type { DynamicEntry, NoteEntry } from '../types';
 import { applyContextToVoices } from './voiceContext';
 import { prepareMeasures } from './measurePrep';
 import {

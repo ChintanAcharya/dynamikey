@@ -9,3 +9,19 @@ export type MidiNoteEvent = {
   timestamp: number;
   source: MidiInputSource;
 };
+
+export type MidiStatus =
+  | 'idle'
+  | 'requesting'
+  | 'ready'
+  | 'error'
+  | 'unsupported';
+
+export type KeyTone = 'white' | 'black';
+
+export type KeyMapping = {
+  key: string;
+  midiNote: number;
+  label: string;
+  tone: KeyTone;
+};

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -6,10 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
-import { formatMidiNote } from './noteUtils';
-import { subscribeInput } from './inputBus';
-import type { MidiNoteEvent, MidiInputSource } from './midiEvents';
+import { subscribeInput } from '@/features/input/lib/inputBus';
+import { formatMidiNote } from '@/features/input/lib/noteUtils';
+import type { MidiInputSource, MidiNoteEvent } from '@/features/input/types';
 
 const MAX_RECENT_EVENTS = 6;
 
@@ -18,11 +18,7 @@ const SOURCE_LABELS: Record<MidiInputSource, string> = {
   webmidi: 'MIDI device',
 };
 
-/**
- * Render recent note events from any active input source.
- * @returns React element.
- */
-function RecentInputEventsCard() {
+export function RecentInputEventsCard() {
   const [recentEvents, setRecentEvents] = useState<MidiNoteEvent[]>([]);
 
   useEffect(() => {
@@ -44,11 +40,11 @@ function RecentInputEventsCard() {
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
-          {recentEvents.length === 0 && (
+          {recentEvents.length === 0 ? (
             <span className="text-xs text-black/50">
               Play a note on any input to see events.
             </span>
-          )}
+          ) : null}
           {recentEvents.map((event) => (
             <div
               key={`${event.timestamp}-${event.source}-${event.type}-${event.midiNote}`}
@@ -70,5 +66,3 @@ function RecentInputEventsCard() {
     </Card>
   );
 }
-
-export default RecentInputEventsCard;

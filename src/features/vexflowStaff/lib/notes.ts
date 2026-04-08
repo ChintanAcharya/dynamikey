@@ -1,6 +1,6 @@
 import { StaveNote, Tickable } from 'vexflow';
 import type { Measure } from '@/features/musicxml/normalizeLesson';
-import type { NoteEntry } from './types';
+import type { NoteEntry } from '../types';
 import {
   beatsToDurationValue,
   midiToKey,
