@@ -1,6 +1,9 @@
 import { use, useMemo } from 'react';
 
-import type { LessonSource } from '@/features/musicxml/lessonCatalog';
+import {
+  loadLessonXml,
+  type LessonSource,
+} from '@/features/musicxml/lessonCatalog';
 import { normalizeLesson } from '@/features/musicxml/normalizeLesson';
 import { parseLessonFromXml } from '@/features/musicxml/osmdParser';
 import VexFlowStaff from '@/features/vexflowStaff/VexFlowStaff';
@@ -11,7 +14,7 @@ type LessonRendererProps = {
 
 export function LessonRenderer({ selectedLesson }: LessonRendererProps) {
   const parseLessonPromise = useMemo(
-    () => parseLessonFromXml(selectedLesson.xml),
+    () => loadLessonXml(selectedLesson).then((xml) => parseLessonFromXml(xml)),
     [selectedLesson],
   );
 
