@@ -1,5 +1,5 @@
 import { Formatter, Renderer, Stave } from 'vexflow';
-import type { Lesson } from '@/features/musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/lessonModel';
 
 import { drawHairpins, collectHairpinSpans } from './hairpins';
 import { getLessonLastBeat } from './lessonMetrics';

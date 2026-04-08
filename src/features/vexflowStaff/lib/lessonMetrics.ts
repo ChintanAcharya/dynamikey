@@ -1,4 +1,4 @@
-import type { Lesson } from '@/features/musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/lessonModel';
 
 /**
  * Determine the last absolute beat in the lesson timeline.

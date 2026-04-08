@@ -1,5 +1,5 @@
 import { Modifier, StaveHairpin, TextDynamics, TextNote } from 'vexflow';
-import type { Measure } from '@/features/musicxml/normalizeLesson';
+import type { Measure } from '@/features/musicxml/lessonModel';
 import {
   DYNAMICS_GLYPH_SCALE,
   DYNAMICS_LINE,

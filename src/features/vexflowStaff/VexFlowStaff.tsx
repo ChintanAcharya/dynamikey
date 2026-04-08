@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { formatMidiNote } from '@/features/input/lib/noteUtils';
-import type { Lesson, NoteEvent } from '@/features/musicxml/normalizeLesson';
+import type { Lesson, NoteEvent } from '@/features/musicxml/lessonModel';
 
 import { VexFlowTempoCard } from './components/VexFlowTempoCard';
 import VexFlowScrollingStaff from './components/VexFlowScrollingStaff';

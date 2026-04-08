@@ -1,4 +1,4 @@
-import type { Lesson } from '@/features/musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/lessonModel';
 
 import { getLessonLastBeat } from './lessonMetrics';
 import { measureModifierWidth } from './layout';

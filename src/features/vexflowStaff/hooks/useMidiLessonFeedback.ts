@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { subscribeInput } from '@/features/input/lib/inputBus';
 import type { MidiNoteEvent } from '@/features/input/types';
-import type { NoteEvent } from '@/features/musicxml/normalizeLesson';
+import type { NoteEvent } from '@/features/musicxml/lessonModel';
 import type { TransportSnapshot } from '@/features/transport/transportClock';
 
 import type {

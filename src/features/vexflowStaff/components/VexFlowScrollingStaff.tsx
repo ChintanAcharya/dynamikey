@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import type { Lesson } from '@/features/musicxml/normalizeLesson';
+import type { Lesson } from '@/features/musicxml/lessonModel';
 
 import {
   createScrollingLessonRenderer,

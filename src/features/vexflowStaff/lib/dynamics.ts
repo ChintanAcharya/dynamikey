@@ -1,5 +1,5 @@
 import { GhostNote, TextDynamics, TextNote, Tickable, Voice } from 'vexflow';
-import type { Measure } from '@/features/musicxml/normalizeLesson';
+import type { Measure } from '@/features/musicxml/lessonModel';
 import {
   DURATION_VALUES,
   DYNAMICS_GLYPH_SCALE,
