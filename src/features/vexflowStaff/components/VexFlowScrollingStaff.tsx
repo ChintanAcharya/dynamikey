@@ -98,12 +98,12 @@ function VexFlowScrollingStaff({
         >
           <div
             ref={renderRootRef}
-            className="absolute left-0 top-1/2 -translate-y-1/2"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-1"
             style={staffHeight ? { minHeight: staffHeight } : undefined}
           />
           <div
             ref={playheadRef}
-            className="pointer-events-none absolute top-0 h-full w-px bg-red-500/80"
+            className="pointer-events-none absolute top-0 h-full w-1 bg-border"
           />
         </div>
       </CardContent>
