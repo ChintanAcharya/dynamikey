@@ -1,13 +1,24 @@
+import { lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router';
 
 import {
   defaultLesson,
   getLessonPath,
 } from '@/features/musicxml/lessonCatalog';
-import { InputPage } from '@/pages/input/InputPage';
 import { AppLayout } from '@/pages/layout/AppLayout';
-import { LessonPage } from '@/pages/lesson/LessonPage';
 import { NoLessonsState } from '@/pages/state/NoLessonsState';
+
+const InputPage = lazy(async () => {
+  const module = await import('@/pages/input/InputPage');
+
+  return { default: module.InputPage };
+});
+
+const LessonPage = lazy(async () => {
+  const module = await import('@/pages/lesson/LessonPage');
+
+  return { default: module.LessonPage };
+});
 
 /**
  * Render the application route tree.

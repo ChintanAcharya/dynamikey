@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Link, Outlet, useLocation, useParams } from 'react-router';
 
 import { AppSidebar } from '@/features/app-shell/components/AppSidebar';
@@ -22,6 +23,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/ui/sidebar';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export function AppLayout() {
   const location = useLocation();
@@ -75,10 +77,21 @@ export function AppLayout() {
             </div>
           </header>
           <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0">
-            <Outlet />
+            <Suspense fallback={<RouteContentSkeleton />}>
+              <Outlet />
+            </Suspense>
           </div>
         </SidebarInset>
       </SidebarProvider>
     </InputRuntimeProvider>
+  );
+}
+
+function RouteContentSkeleton() {
+  return (
+    <section className="flex flex-1 flex-col gap-4">
+      <Skeleton className="h-12 w-48 rounded-2xl" />
+      <Skeleton className="min-h-64 flex-1 rounded-3xl" />
+    </section>
   );
 }
