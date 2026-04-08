@@ -1,4 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import { formatMidiNote } from '@/features/input/noteUtils';
 import type { Lesson, NoteEvent } from '@/features/musicxml/normalizeLesson';
 
@@ -113,6 +122,10 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   });
 
   const currentNote = playableNotes[currentNoteIndex] ?? null;
+  const currentBeat = Math.min(
+    totalBeats,
+    Math.max(0, transportSnapshot.currentBeat),
+  );
 
   const handlePlayPause = async () => {
     if (phase === 'ended') {
@@ -133,39 +146,79 @@ function VexFlowStaff({ lesson }: VexFlowStaffProps) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <VexFlowStaffPlayer
         beatNumber={beatNumber}
         countInRemaining={countInRemaining}
+        currentBeat={currentBeat}
         isRunning={isRunning}
         onPlayPause={handlePlayPause}
         onReset={handleReset}
-        onTempoChange={handleTempoChange}
         phase={phase}
-        tempoBpm={tempoBpm}
+        totalBeats={totalBeats}
       />
 
-      <VexFlowStaffFeedback
-        flashKey={flashKey}
-        indicator={feedbackIndicator}
-        timing={feedbackDetail.timing}
-        velocity={feedbackDetail.velocity}
-      />
-      <VexFlowStaffInfo
-        currentNoteLabel={
-          currentNote ? formatMidiNote(currentNote.midiNote) : '—'
-        }
-        targetVelocity={currentNote?.velocityTarget ?? null}
-        timingWindowMs={timingWindowMs}
-        velocityTolerance={velocityTolerance}
-      />
+      <div className="min-h-0 flex-1">
+        <VexFlowScrollingStaff
+          currentBeat={transportSnapshot.currentBeat}
+          feedbackRevision={feedbackRevision}
+          lesson={lesson}
+          noteStatuses={noteStatuses}
+        />
+      </div>
 
-      <VexFlowScrollingStaff
-        currentBeat={transportSnapshot.currentBeat}
-        feedbackRevision={feedbackRevision}
-        lesson={lesson}
-        noteStatuses={noteStatuses}
-      />
+      <div className="grid gap-4 xl:grid-cols-3">
+        <Card className="xl:col-span-1">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Tempo</CardTitle>
+                <CardDescription>
+                  Adjust playback speed for the lesson.
+                </CardDescription>
+              </div>
+              <Badge variant="outline" className="tabular-nums">
+                {tempoBpm} BPM
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Slider
+              aria-label="Tempo"
+              value={[tempoBpm]}
+              min={40}
+              max={160}
+              step={1}
+              onValueChange={(values) => {
+                const value = values[0];
+                if (typeof value === 'number') {
+                  handleTempoChange(value);
+                }
+              }}
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>40 BPM</span>
+              <span>160 BPM</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <VexFlowStaffFeedback
+          flashKey={flashKey}
+          indicator={feedbackIndicator}
+          timing={feedbackDetail.timing}
+          velocity={feedbackDetail.velocity}
+        />
+
+        <VexFlowStaffInfo
+          currentNoteLabel={
+            currentNote ? formatMidiNote(currentNote.midiNote) : '—'
+          }
+          targetVelocity={currentNote?.velocityTarget ?? null}
+          timingWindowMs={timingWindowMs}
+          velocityTolerance={velocityTolerance}
+        />
+      </div>
     </div>
   );
 }

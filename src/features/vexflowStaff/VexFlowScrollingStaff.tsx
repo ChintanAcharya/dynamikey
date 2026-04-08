@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Lesson } from '@/features/musicxml/normalizeLesson';
 
 import {
@@ -89,17 +90,24 @@ function VexFlowScrollingStaff({
   }, [lesson]);
 
   return (
-    <div
-      ref={viewportRef}
-      className="relative w-full overflow-hidden rounded-2xl border border-black/10 bg-white"
-      style={staffHeight ? { height: staffHeight } : undefined}
-    >
-      <div ref={renderRootRef} className="absolute left-0 top-0" />
-      <div
-        ref={playheadRef}
-        className="pointer-events-none absolute top-0 h-full w-px bg-red-500/80"
-      />
-    </div>
+    <Card className="h-full min-h-0 py-0">
+      <CardContent className="h-full min-h-0 p-0">
+        <div
+          ref={viewportRef}
+          className="relative h-full min-h-0 w-full overflow-hidden rounded-xl"
+        >
+          <div
+            ref={renderRootRef}
+            className="absolute left-0 top-1/2 -translate-y-1/2"
+            style={staffHeight ? { minHeight: staffHeight } : undefined}
+          />
+          <div
+            ref={playheadRef}
+            className="pointer-events-none absolute top-0 h-full w-px bg-red-500/80"
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
