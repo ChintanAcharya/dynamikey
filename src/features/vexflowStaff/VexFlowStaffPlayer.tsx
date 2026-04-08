@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { PauseIcon, PlayIcon, RotateCcwIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,9 +28,13 @@ function VexFlowStaffPlayer({
   totalBeats,
 }: VexFlowStaffPlayerProps) {
   const clampedBeat = Math.min(totalBeats, Math.max(0, currentBeat));
-  const displayBeat = Number(clampedBeat.toFixed(1));
-  const displayTotalBeats = Number(totalBeats.toFixed(1));
+  const displayBeat = Math.trunc(clampedBeat);
+  const displayTotalBeats = Math.trunc(totalBeats);
   const phaseLabel = phase.replace('-', ' ');
+
+  const sliderValue = useMemo(() => {
+    return [displayBeat];
+  }, [displayBeat]);
 
   return (
     <Card className="w-full">
@@ -70,7 +75,7 @@ function VexFlowStaffPlayer({
             <div className="space-y-2">
               <Slider
                 aria-label="Lesson position"
-                value={[clampedBeat]}
+                value={sliderValue}
                 max={Math.max(totalBeats, 1)}
                 step={0.01}
                 disabled
