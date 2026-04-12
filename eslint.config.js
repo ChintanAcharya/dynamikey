@@ -5,6 +5,7 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 import { defineConfig, globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier';
+import reactCompilerPlugin from 'eslint-plugin-react-compiler';
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -16,6 +17,7 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
       eslintConfigPrettier,
+      reactCompilerPlugin.configs.recommended,
     ],
     rules: {
       'react-refresh/only-export-components': 'off',
