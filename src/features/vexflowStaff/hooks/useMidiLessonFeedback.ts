@@ -1,10 +1,4 @@
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { subscribeInput } from '@/features/input/lib/inputBus';
 import type { NoteEvent } from '@/features/musicxml/lessonModel';
 import type { TransportSnapshot } from '@/features/transport/transportClock';
@@ -111,7 +105,7 @@ function useMidiLessonFeedback({
   );
 
   // Recreate engine when lesson config changes.
-  useLayoutEffect(() => {
+  useEffect(() => {
     const engine = new ScoringEngine({
       notes: playableNotes,
       tempoBpm,
