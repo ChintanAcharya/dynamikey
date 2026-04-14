@@ -105,6 +105,8 @@ function useMidiLessonFeedback({
   );
 
   // Recreate engine when lesson config changes.
+  // Note: state is not reset here — callers (VexFlowStaff) always call
+  // resetFeedbackState() before config changes, which resets state explicitly.
   useEffect(() => {
     const engine = new ScoringEngine({
       notes: playableNotes,
