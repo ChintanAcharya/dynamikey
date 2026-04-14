@@ -116,8 +116,6 @@ function useMidiLessonFeedback({
       gradeTiming: gradeTimingAdapted,
     });
     engineRef.current = engine;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setScoringState(engine.getState());
   }, [
     gradeTimingAdapted,
     missGraceBeats,
