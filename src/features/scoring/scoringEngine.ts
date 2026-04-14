@@ -20,13 +20,13 @@ export type ScoringNote = {
 };
 
 export type NoteGrade = {
-  noteId: NoteId;
-  status: NoteFeedbackStatus;
-  beatDelta: number; // signed: negative = early, positive = late
-  velocityDelta: number; // signed: negative = softer, positive = louder
-  timingLabel: string; // pre-formatted by engine for display
-  velocityLabel: string; // pre-formatted by engine for display
-  gradedAt: 'input' | 'timeout';
+  readonly noteId: NoteId;
+  readonly status: NoteFeedbackStatus;
+  readonly beatDelta: number; // signed: negative = early, positive = late
+  readonly velocityDelta: number; // signed: negative = softer, positive = louder
+  readonly timingLabel: string; // pre-formatted by engine for display
+  readonly velocityLabel: string; // pre-formatted by engine for display
+  readonly gradedAt: 'input' | 'timeout';
 };
 
 export type ScoringState = {
