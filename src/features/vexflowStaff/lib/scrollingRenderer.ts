@@ -1,5 +1,6 @@
 import { Formatter, Renderer, Stave } from 'vexflow';
 import type { Lesson } from '@/features/musicxml/lessonModel';
+import type { NoteFeedbackStatus } from '@/features/scoring/scoringEngine';
 
 import { EPSILON } from './constants';
 import { collectHairpinSpans, drawHairpins } from './hairpins';
@@ -19,7 +20,7 @@ export type ScrollingRendererOptions = ScrollingLayoutConfig & {
   overscanBeats: number;
 };
 
-export type NoteFeedbackStatus = 'hit' | 'miss' | 'warn';
+export type { NoteFeedbackStatus } from '@/features/scoring/scoringEngine';
 
 export type NoteFeedbackMap = Map<string, NoteFeedbackStatus>;
 
